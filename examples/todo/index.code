@@ -1,0 +1,96 @@
+////////////////////////////
+//// helper types 
+
+type todo struct {
+    isCompleted bool
+    isEditing   bool
+    title       string
+}
+
+type activeFilter enum {
+    None = iota
+    Active
+    Completed
+}
+
+////////////////////////////
+//// page level vars are the implicit model for the page
+
+var todos []todo = []todo{}
+var curFilter = activeFilter.None 
+
+
+////////////////////////////
+//// helper funcs
+
+func activeTodoCount() int {
+    return len(filter(todos, func(todo t) bool {
+        return !t.isCompleted
+    }))
+} 
+
+func completedTodoCount() int {
+    return len(filter(todos, func(todo t) bool {
+        return t.isCompleted
+    }))
+}
+
+// return true to be included in the results
+func toCurFilter(todo t) bool {
+    switch curFilter {
+        case Active:
+            return !t.isCompleted 
+        case Completed:
+            return t.isCompleted
+        default:
+            return true
+    }
+}
+
+////////////////////////////
+//// events
+
+func addTodo(e events.KeyUp) {
+    todos = append(todos, todo{ 
+        title: strings.Trim(newTodo.value),
+    })
+    newTodo.value = ""
+}
+
+func allDone() {
+    for t := range todos {
+        t.isCompleted = toggle-all.checked
+    }
+}
+
+func removeTodo(t todo) {
+    remove(todos, t)
+}
+
+func editTodo(t todo) {
+    t.isEditing = true
+    todoEditBox.value = t.title
+}
+
+func doneEdit(t todo) {
+    if !t.isEditing {
+        return
+    }
+
+    t.isEditing = false 
+    if val := strings.Trim(todoEditBox.value); len(val) > 0 {
+        t.title = val
+    } else {
+        removeTodo(t)
+    }
+}
+
+func cancelEdit(t todo) {
+    t.isEditing = false
+}
+
+func removeCompleted() {
+    todos = filter(todos, func(todo t) bool {
+        return !t.isCompleted
+    })
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en" data-framework="weblang">
+	<head>
+		<meta charset="utf-8">
+		<title>Weblang • TodoMVC</title>
+		<link rel="stylesheet" href="stylesheets/base.css">
+	</head>
+	<body>
+        <placeholder id="main" />
+
+		<footer class="info">
+			<p>Double-click to edit a todo</p>
+			<p>Created by <a href="http://github.com/dlclark">Doug Clark</a></p>
+			<p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+		</footer>
+		<script src="../../node_modules/todomvc-common/base.js"></script>
+		<script type="application/dart" src="dart/app.dart"></script>
+		<script src="packages/browser/dart.js"></script>
+	</body>
+</html>
