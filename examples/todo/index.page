@@ -12,31 +12,31 @@
 				<h1>todos</h1>
 				<input id="newTodo" class="new-todo" autofocus autocomplete="off" placeholder="What needs to be done?" @keyup.enter="addTodo">
 			</header>
-			@if len(todos) > 0 {
+			{{if len(todos) > 0}}
 				<section class="main">
 					<input id="toggle-all" class="toggle-all" type="checkbox" @checked="allDone">
 					<label for="toggle-all">Mark all as complete</label>
 					<ul class="todo-list">
-						@for todo := range filter(todos, toCurFilter) {
+						{{for todo := range filter(todos, toCurFilter)}}
 							<li class="{{if todo.isCompleted}}completed{{/if}} {{if todo.isEditing}}editing{{/if}}">
 								<div class="view">
 									<input class="toggle" type="checkbox" {{if todo.isCompleted}}checked{{/if}}>
-									<label @dblclick="editTodo(todo)">@todo.title</label>
+									<label @dblclick="editTodo(todo)">{{todo.title}}</label>
 									<button class="destroy" @click="removeTodo(todo)"></button>
 								</div>
 								<input class="edit" type="text" id="todoEditBox" @blur="doneEdit(todo)" @keyup.enter="doneEdit(todo)" @keyup.esc="cancelEdit(todo)" autofocus>
 							</li>
-						}	
+						{{/for}}
 					</ul>
 				</section>
 				<footer class="footer">
 					<span class="todo-count">
-						<strong>@activeTodoCount()</strong>
-						@if activeTodoCount() == 1 { 
+						<strong>{{activeTodoCount()}}</strong>
+						{{if activeTodoCount() == 1}}
 							item
-						} else {
+						{{else}}}
 							items
-						}
+						{{/if}}
 						left
 					</span>
 					<ul class="filters">
@@ -44,13 +44,13 @@
 						<li><a href="#/active" {{if curFilter == activeFilter.Active}}class="selected"{{/if}}>Active</a></li>
 						<li><a href="#/completed" {{if curFilter == activeFilter.Completed}}class="selected"{{/if}}>Completed</a></li>
 					</ul>
-					@if completedTodoCount() > 0 {
+					{{if completedTodoCount() > 0}}
 						<button class="clear-completed" @click="removeCompleted">
 							Clear completed
 						</button>
-					}
+					{{/if}}
 				</footer>
-			}
+			{{/if}}
 		</section>
 		<footer class="info">
 			<p>Double-click to edit a todo</p>

@@ -24,15 +24,11 @@ var curFilter = activeFilter.None
 //// helper funcs
 
 func activeTodoCount() int {
-    return len(filter(todos, func(todo t) bool {
-        return !t.isCompleted
-    }))
+    return len(filter(todos, t => !t.isCompleted))
 } 
 
 func completedTodoCount() int {
-    return len(filter(todos, func(todo t) bool {
-        return t.isCompleted
-    }))
+    return len(filter(todos, t => t.isCompleted))
 }
 
 // return true to be included in the results
@@ -90,7 +86,5 @@ func cancelEdit(t todo) {
 }
 
 func removeCompleted() {
-    todos = filter(todos, func(todo t) bool {
-        return !t.isCompleted
-    })
+    todos = filter(todos, t => !t.isCompleted)
 }
