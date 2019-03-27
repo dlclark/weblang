@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Hello Weblang</title>
+        <link rel="stylesheet" href="index.css">
+    </head>
+    <body>
+        <h1>{{message}}</h1>
+        Our first template!
+    </body>
+</html>

@@ -19,6 +19,16 @@ type activeFilter enum {
 var todos []todo = []todo{}
 var curFilter = activeFilter.None 
 
+////////////////////////////
+//// TODO: Do we need to have the explicitly defined template backing vars?
+//// or can we figure it out automatically by pre-parsing the template?
+//// By defining these expicitly we can remove a step in the compile and just process the code first 
+//// then process the template based on the fully parsed code
+
+var newTodo html.Input
+var todoEditBox html.Input
+var toggle-all html.Input
+
 
 ////////////////////////////
 //// helper funcs
