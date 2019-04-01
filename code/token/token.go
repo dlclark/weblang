@@ -9,9 +9,9 @@ const (
 	// Identifiers + literals
 	IDENT     = "IDENT"     // add, foobar, x, y, ...
 	INT       = "INT"       // 1343456
+	FLOAT     = "FLOAT"     // 123.456
 	STRING    = "STRING"    // "foobar"
 	RAWSTRING = "RAWSTRING" // `foobar`
-	COMPLEX   = "COMPLEX"   // 2+2i
 
 	// Operators
 	ASSIGN   = "="
@@ -21,8 +21,10 @@ const (
 	ASTERISK = "*"
 	SLASH    = "/"
 
-	LT = "<"
-	GT = ">"
+	LT  = "<"
+	LTE = "<="
+	GT  = ">"
+	GTE = ">="
 
 	EQ     = "=="
 	NOT_EQ = "!="
@@ -48,6 +50,7 @@ const (
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
 	CONST    = "CONST"
+	STRUCT   = "STRUCT"
 )
 
 type Token struct {
@@ -68,6 +71,7 @@ var keywords = map[string]TokenType{
 	"if":     IF,
 	"else":   ELSE,
 	"return": RETURN,
+	"struct": STRUCT,
 }
 
 func LookupIdent(ident string) TokenType {

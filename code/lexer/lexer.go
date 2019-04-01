@@ -73,12 +73,15 @@ func lexText(l *Lexer) stateFn {
 
 	switch r := l.next(); {
 	case r == eof:
+		//maybe emit a semicolon
+		lexNewline(l)
 		l.emit(token.EOF)
 		return nil
 	case isEndOfLine(r):
 		return lexNewline
 	case r == '=':
-		l.emit(token.ASSIGN)
+		l.equalPeek(token.EQ, token.ASSIGN)
+
 	case r == '(':
 		l.emit(token.LPAREN)
 		l.parenDepth++
@@ -96,6 +99,18 @@ func lexText(l *Lexer) stateFn {
 		l.emit(token.COLON)
 	case r == '+':
 		l.emit(token.PLUS)
+	case r == '-':
+		l.emit(token.MINUS)
+	case r == '!':
+		l.equalPeek(token.NOT_EQ, token.BANG)
+	case r == '/':
+		l.emit(token.SLASH)
+	case r == '*':
+		l.emit(token.ASTERISK)
+	case r == '<':
+		l.equalPeek(token.LTE, token.LT)
+	case r == '>':
+		l.equalPeek(token.GTE, token.GT)
 	case r == '{':
 		l.emit(token.LBRACE)
 	case r == '}':
@@ -125,23 +140,16 @@ func lexNewline(l *Lexer) stateFn {
 			one of the keywords break, continue, fallthrough, or return
 			one of the operators and delimiters ++, --, ), ], or }
 	*/
+	// in go, true and false are identifiers, for us we have separate tokens
+
 	if l.prevToken == nil {
 		return lexText
 	}
 	switch l.prevToken.Type {
-	case token.IDENT:
-		fallthrough
-	case token.INT:
-		fallthrough
-	case token.STRING:
-		fallthrough
-	case token.RAWSTRING:
-		fallthrough
-	case token.RPAREN:
-		fallthrough
-	case token.RBRACE:
-		fallthrough
-	case token.RBRACKET:
+	case token.IDENT, token.TRUE, token.FALSE,
+		token.INT, token.FLOAT, token.STRING, token.RAWSTRING,
+		token.RPAREN, token.RBRACE, token.RBRACKET:
+
 		l.emit(token.SEMICOLON)
 	}
 
@@ -161,7 +169,6 @@ Loop:
 			/*if !l.atTerminator() {
 				return l.errorf("bad character %#U", r)
 			}*/
-			println(ident)
 			l.emit(token.LookupIdent(ident))
 
 			break Loop
@@ -175,24 +182,11 @@ Loop:
 // and "089" - but when it's wrong the input is invalid and the parser (via
 // strconv) will notice.
 func lexNumber(l *Lexer) stateFn {
-	if !l.scanNumber() {
-		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
-	}
-	if sign := l.peek(); sign == '+' || sign == '-' {
-		// Complex: 1+2i. No spaces, must end in 'i'.
-		if !l.scanNumber() || l.input[l.pos-1] != 'i' {
-			return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
-		}
-		l.emit(token.COMPLEX)
-	} else {
-		l.emit(token.INT)
-	}
-	return lexText
-}
+	isFloat := false
 
-func (l *Lexer) scanNumber() bool {
 	// Optional leading sign.
 	l.accept("+-")
+
 	// Is it hex?
 	digits := "0123456789"
 	if l.accept("0") && l.accept("xX") {
@@ -200,20 +194,28 @@ func (l *Lexer) scanNumber() bool {
 	}
 	l.acceptRun(digits)
 	if l.accept(".") {
+		isFloat = true
 		l.acceptRun(digits)
 	}
 	if l.accept("eE") {
+		isFloat = true
 		l.accept("+-")
 		l.acceptRun("0123456789")
 	}
-	// Is it imaginary?
-	l.accept("i")
-	// Next thing mustn't be alphanumeric.
+
+	// Next thing must not be alphanumeric.
 	if isAlphaNumeric(l.peek()) {
 		l.next()
-		return false
+		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}
-	return true
+
+	if isFloat {
+		l.emit(token.FLOAT)
+	} else {
+		l.emit(token.INT)
+	}
+
+	return lexText
 }
 
 // lexString scans a quoted string.
@@ -275,7 +277,7 @@ func (l *Lexer) next() rune {
 	l.col += l.width
 	if r == '\n' {
 		l.line++
-		l.lineWidth = l.col
+		l.lineWidth = l.col - 1
 		l.col = 1
 	}
 	return r
@@ -286,6 +288,24 @@ func (l *Lexer) peek() rune {
 	r := l.next()
 	l.backup()
 	return r
+}
+
+func (l *Lexer) equalPeek(withEquals token.TokenType, noEquals token.TokenType) {
+	if l.ifPeek('=') {
+		l.emit(withEquals)
+	} else {
+		l.emit(noEquals)
+	}
+}
+
+// ifPeek peeks at the next value and consumes it and returns true ONLY IF the peeked value == val
+func (l *Lexer) ifPeek(val rune) bool {
+	r := l.next()
+	if r == val {
+		return true
+	}
+	l.backup()
+	return false
 }
 
 // backup steps back one rune. Can only be called once per call of next.
@@ -332,6 +352,7 @@ func (l *Lexer) acceptRun(valid string) {
 	}
 	l.backup()
 }
+
 func (l *Lexer) skipSpace() {
 	for r := l.next(); isSpace(r); r = l.next() {
 	}

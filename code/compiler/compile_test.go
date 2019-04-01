@@ -1,89 +1,72 @@
 package compiler
 
-import "testing"
+import (
+	"testing"
+	"weblang/code/lexer"
+	"weblang/code/parser"
+)
 
-func TestHelloWorldConst(t *testing.T) {
-	c := &Compiler{}
-	res, err := c.CompilePage(`<!doctype html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <title>Hello Weblang</title>
-        <link rel="stylesheet" href="index.css">
-    </head>
-    <body>
-        <h1>{{message}}</h1>
-        Our first template!
-    </body>
-</html>`, `const message = "Hello World!"`)
+func TestHelloWorldVar(t *testing.T) {
+	output := compileProgram(t, `var message = "Hello World!"`)
 
-	if err != nil {
-		t.Fatalf("compile error: %v", err)
-	}
-
-	if res == nil {
-		t.Fatal("no error, but no results")
-	}
-
-	if res.Js != "" {
-		t.Fatalf("Incorrect JS, got '%v'", res.Js)
-	}
-
-	if res.HTML != `<!doctype html>
-    <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Hello Weblang</title>
-            <link rel="stylesheet" href="index.css">
-        </head>
-        <body>
-            <h1>Hello World!</h1>
-            Our first template!
-        </body>
-    </html>` {
-		t.Fatalf("Incorrect HTML, got '%v'", res.HTML)
+	if want, got := `let message = "Hello World!";`, output; want != got {
+		t.Fatalf("output wanted:\n%v\ngot:\n%v", want, got)
 	}
 }
 
-func TestHelloWorldVar(t *testing.T) {
-	c := &Compiler{}
-	res, err := c.CompilePage(`<!doctype html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <title>Hello Weblang</title>
-        <link rel="stylesheet" href="index.css">
-    </head>
-    <body>
-        <h1>{{message}}</h1>
-        Our first template!
-    </body>
-</html>`, `var message = "Hello World!"`)
+func TestIfVar(t *testing.T) {
+	output := compileProgram(t, `
+var test = "Hello"
+if test == "World" { }`)
+
+	if want, got := `let test = "Hello";
+if (test === "World") {
+};`, output; want != got {
+		t.Fatalf("output wanted:\n%v\ngot:\n%v", want, got)
+	}
+}
+
+func TestIfVarSet(t *testing.T) {
+	output := compileProgram(t, `
+var test = "Hello"
+if test == "Hello" { 
+    test = "World"
+ }`)
+
+	if want, got := `let test = "Hello";
+if (test === "Hello") {
+test = "World";
+};`, output; want != got {
+		t.Fatalf("output wanted:\n%v\ngot:\n%v", want, got)
+	}
+}
+
+func compileProgram(t *testing.T, program string) string {
+	l := lexer.New(program, "junk")
+	p := parser.New(l)
+
+	tree := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	c := New()
+	err := c.Compile(tree)
 
 	if err != nil {
 		t.Fatalf("compile error: %v", err)
 	}
 
-	if res == nil {
-		t.Fatal("no error, but no results")
+	return c.Output()
+}
+
+func checkParserErrors(t *testing.T, p *parser.Parser) {
+	errors := p.Errors()
+	if len(errors) == 0 {
+		return
 	}
 
-	if res.Js != "" {
-		t.Fatalf("Incorrect JS, got '%v'", res.Js)
+	t.Errorf("parser has %d errors", len(errors))
+	for _, msg := range errors {
+		t.Errorf("parser error: %q", msg)
 	}
-
-	if res.HTML != `<!doctype html>
-    <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Hello Weblang</title>
-            <link rel="stylesheet" href="index.css">
-        </head>
-        <body>
-            <h1></h1>
-            Our first template!
-        </body>
-    </html>` {
-		t.Fatalf("Incorrect HTML, got '%v'", res.HTML)
-	}
+	t.FailNow()
 }
