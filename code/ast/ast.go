@@ -50,9 +50,22 @@ func (p *Program) String() string {
 ///////////////////////////////
 // Statements
 
+type TypeDeclStatement struct {
+	Token   token.Token // the type token
+	Name    *Identifier
+	TypeDef Expression // StructExpression or EnumExpression
+}
+
+func (s *TypeDeclStatement) statementNode()       {}
+func (s *TypeDeclStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *TypeDeclStatement) String() string {
+	return "type " + s.Name.String() + " " + s.TypeDef.String()
+}
+
 type VarStatement struct {
 	Token token.Token // the token.VAR token
 	Name  *Identifier
+	Type  Expression
 	Value Expression
 }
 
@@ -63,9 +76,13 @@ func (ls *VarStatement) String() string {
 
 	out.WriteString(ls.TokenLiteral() + " ")
 	out.WriteString(ls.Name.String())
-	out.WriteString(" = ")
+	if ls.Type != nil {
+		out.WriteString(" ")
+		out.WriteString(ls.Type.String())
+	}
 
 	if ls.Value != nil {
+		out.WriteString(" = ")
 		out.WriteString(ls.Value.String())
 	}
 
@@ -262,4 +279,73 @@ func (fl *FunctionLiteral) String() string {
 	out.WriteString(fl.Body.String())
 
 	return out.String()
+}
+
+type SelectorExpression struct {
+	Lhs   Expression  //expression
+	Token token.Token // the '.' token
+	Sel   *Identifier // field selector
+}
+
+func (e *SelectorExpression) expressionNode()      {}
+func (e *SelectorExpression) TokenLiteral() string { return e.Token.Literal }
+func (e *SelectorExpression) String() string {
+	return e.Lhs.String() + "." + e.Sel.String()
+}
+
+type StructExpression struct {
+	Token  token.Token // the 'struct' token
+	Fields *FieldList
+}
+
+func (e *StructExpression) expressionNode()      {}
+func (e *StructExpression) TokenLiteral() string { return e.Token.Literal }
+func (e *StructExpression) String() string {
+	return "struct " + e.Fields.String()
+}
+
+type EnumExpression struct {
+	Token  token.Token // the 'enum' token
+	Fields *FieldList
+}
+
+func (e *EnumExpression) expressionNode()      {}
+func (e *EnumExpression) TokenLiteral() string { return e.Token.Literal }
+func (e *EnumExpression) String() string {
+	return "enum " + e.Fields.String()
+}
+
+type FieldList struct {
+	Opening token.Token // open brace
+	Fields  []*Field
+	Closing token.Token
+}
+
+func (fl *FieldList) String() string {
+	var out bytes.Buffer
+
+	fields := []string{}
+	for _, f := range fl.Fields {
+		fields = append(fields, f.String())
+	}
+
+	out.WriteString(fl.Opening.Literal)
+	out.WriteString(strings.Join(fields, ", "))
+	out.WriteString(fl.Closing.Literal)
+
+	return out.String()
+}
+
+type Field struct {
+	Name  *Identifier // fieldname
+	Type  Expression  // its type, or nil if needs to be guessed
+	Value Expression  // if it's set to something, otherwise nil
+}
+
+func (f *Field) String() string {
+	out := f.Name.String() + " " + f.Type.String()
+	if f.Value != nil {
+		out += " = " + f.Value.String()
+	}
+	return out
 }

@@ -17,7 +17,13 @@ if a == b {
 }
 var result = add(five, ten)
 10 == 10
-10 != 9`
+10 != 9
+type testing struct { 
+    a int
+    b string = "default?"
+    c struct { inner string }
+}
+d = e.f.g`
 
 	tests := []struct {
 		expectedType    token.TokenType
@@ -73,7 +79,36 @@ var result = add(five, ten)
 		{token.INT, "10", 11, 1},
 		{token.NOT_EQ, "!=", 11, 4},
 		{token.INT, "9", 11, 7},
-		{token.SEMICOLON, "", 11, 8}, //48
+		{token.SEMICOLON, "\n", 11, 8},
+		{token.TYPE, "type", 12, 1},
+		{token.IDENT, "testing", 12, 6}, //50
+		{token.STRUCT, "struct", 12, 14},
+		{token.LBRACE, "{", 12, 21},
+		{token.IDENT, "a", 13, 5},
+		{token.IDENT, "int", 13, 7},
+		{token.SEMICOLON, "\n", 13, 10},
+		{token.IDENT, "b", 14, 5},
+		{token.IDENT, "string", 14, 7},
+		{token.ASSIGN, "=", 14, 14},
+		{token.STRING, "default?", 14, 17},
+		{token.SEMICOLON, "\n", 14, 26}, //60
+		{token.IDENT, "c", 15, 5},
+		{token.STRUCT, "struct", 15, 7},
+		{token.LBRACE, "{", 15, 14},
+		{token.IDENT, "inner", 15, 16},
+		{token.IDENT, "string", 15, 22},
+		{token.RBRACE, "}", 15, 29},
+		{token.SEMICOLON, "\n", 15, 30},
+		{token.RBRACE, "}", 16, 1},
+		{token.SEMICOLON, "\n", 16, 2},
+		{token.IDENT, "d", 17, 1}, //70
+		{token.ASSIGN, "=", 17, 3},
+		{token.IDENT, "e", 17, 5},
+		{token.DOT, ".", 17, 6},
+		{token.IDENT, "f", 17, 7},
+		{token.DOT, ".", 17, 8},
+		{token.IDENT, "g", 17, 9},
+		{token.SEMICOLON, "", 17, 10}, //77
 	}
 
 	l := New(input, "testFile")

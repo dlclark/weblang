@@ -5,6 +5,7 @@ import (
 	"testing"
 	"weblang/code/ast"
 	"weblang/code/lexer"
+	"weblang/code/token"
 )
 
 func TestVarStatements(t *testing.T) {
@@ -136,6 +137,173 @@ func TestIfElseIfStatement(t *testing.T) {
 	}
 	if !testAssignStatement(t, alternative.Consequence.Statements[0].(*ast.AssignStatement), "c", "=", "d") {
 		return
+	}
+}
+
+func TestStructDecl(t *testing.T) {
+	input := `
+	type testing struct { 
+		a int
+		b string = "default?"
+		c struct { inner string }
+	}`
+
+	l := lexer.New(input, "test")
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if want, got := 1, len(program.Statements); want != got {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", want, got)
+	}
+
+	td := program.Statements[0].(*ast.TypeDeclStatement)
+	if want, got := "testing", td.Name.Value; want != got {
+		t.Fatalf("name mismatch, want=%v got=%v", want, got)
+	}
+
+	if want, got := token.TYPE, string(td.Token.Type); want != got {
+		t.Fatalf("td token mismatch, want=%v got=%v", want, got)
+	}
+
+	st := td.TypeDef.(*ast.StructExpression)
+	if want, got := token.STRUCT, string(st.Token.Type); want != got {
+		t.Fatalf("st token mismatch, want=%v got=%v", want, got)
+	}
+	if want, got := 3, len(st.Fields.Fields); want != got {
+		t.Fatalf("field count mismatch, want=%v got=%v", want, got)
+	}
+	testField(t, st.Fields.Fields[0], "a", "int", "")
+	testField(t, st.Fields.Fields[1], "b", "string", "\"default?\"")
+	testField(t, st.Fields.Fields[2], "c", "struct {inner string}", "")
+}
+
+func TestEnumDecl(t *testing.T) {
+	input := `
+type test enum {
+    None = 0
+    Blah = 1
+    Yu = 2
+}`
+	l := lexer.New(input, "test")
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if want, got := 1, len(program.Statements); want != got {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", want, got)
+	}
+
+	td := program.Statements[0].(*ast.TypeDeclStatement)
+	if want, got := "test", td.Name.Value; want != got {
+		t.Fatalf("name mismatch, want=%v got=%v", want, got)
+	}
+	if want, got := token.TYPE, string(td.Token.Type); want != got {
+		t.Fatalf("td token mismatch, want=%v got=%v", want, got)
+	}
+
+	st := td.TypeDef.(*ast.EnumExpression)
+	if want, got := token.ENUM, string(st.Token.Type); want != got {
+		t.Fatalf("st token mismatch, want=%v got=%v", want, got)
+	}
+	if want, got := 3, len(st.Fields.Fields); want != got {
+		t.Fatalf("field count mismatch, want=%v got=%v", want, got)
+	}
+	testField(t, st.Fields.Fields[0], "None", "", "0")
+	testField(t, st.Fields.Fields[1], "Blah", "", "1")
+	testField(t, st.Fields.Fields[2], "Yu", "", "2")
+}
+
+func TestAssignmentStatement(t *testing.T) {
+	input := `
+	a.b = c
+	d = e.f
+	g = h.i.j`
+
+	l := lexer.New(input, "test")
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if want, got := 3, len(program.Statements); want != got {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", want, got)
+	}
+
+	asn := program.Statements[0].(*ast.AssignStatement)
+	if want, got := "a", asn.Lhs.(*ast.SelectorExpression).Lhs.(*ast.Identifier).Value; want != got {
+		t.Fatalf("line 1 lhs.lhs  want=%v got=%v", want, got)
+	}
+	if want, got := "b", asn.Lhs.(*ast.SelectorExpression).Sel.Value; want != got {
+		t.Fatalf("line 1 lhs.sel  want=%v got=%v", want, got)
+	}
+	if want, got := "c", asn.Rhs.(*ast.Identifier).String(); want != got {
+		t.Fatalf("line 1 rhs. want=%v got=%v", want, got)
+	}
+
+	asn = program.Statements[1].(*ast.AssignStatement)
+	if want, got := "d", asn.Lhs.(*ast.Identifier).String(); want != got {
+		t.Fatalf("line 2 lhs. want=%v got=%v", want, got)
+	}
+	if want, got := "e", asn.Rhs.(*ast.SelectorExpression).Lhs.(*ast.Identifier).Value; want != got {
+		t.Fatalf("line 2 rhs.lhs  want=%v got=%v", want, got)
+	}
+	if want, got := "f", asn.Rhs.(*ast.SelectorExpression).Sel.Value; want != got {
+		t.Fatalf("line 2 rhs.sel  want=%v got=%v", want, got)
+	}
+
+	asn = program.Statements[2].(*ast.AssignStatement)
+	if want, got := "g", asn.Lhs.(*ast.Identifier).String(); want != got {
+		t.Fatalf("line 3 lhs. want=%v got=%v", want, got)
+	}
+	if want, got := "h", asn.Rhs.(*ast.SelectorExpression).Lhs.(*ast.SelectorExpression).Lhs.(*ast.Identifier).Value; want != got {
+		t.Fatalf("line 3 rhs.left.left want=%v got=%v", want, got)
+	}
+	if want, got := "i", asn.Rhs.(*ast.SelectorExpression).Lhs.(*ast.SelectorExpression).Sel.Value; want != got {
+		t.Fatalf("line 3 rhs.left.sel want=%v got=%v", want, got)
+	}
+	if want, got := "j", asn.Rhs.(*ast.SelectorExpression).Sel.Value; want != got {
+		t.Fatalf("line 3 rhs.sel want=%v got=%v", want, got)
+	}
+
+}
+
+func TestReturnStatement(t *testing.T) {
+	input := `return true`
+
+	l := lexer.New(input, "test")
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if want, got := 1, len(program.Statements); want != got {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", want, got)
+	}
+
+	td := program.Statements[0].(*ast.ReturnStatement)
+	if want, got := true, td.ReturnValue.(*ast.BooleanLiteral).Value; want != got {
+		t.Fatalf("return val mismatch, want=%v got=%v", want, got)
+	}
+}
+
+func testField(t *testing.T, f *ast.Field, name string, typ string, val string) {
+	if want, got := name, f.Name.Value; want != got {
+		t.Fatalf("field name mismatch, want=%v got=%v", want, got)
+	}
+
+	if typ != "" || f.Type != nil {
+		if want, got := typ, f.Type.String(); want != got {
+			t.Fatalf("field type mismatch, want=%v got=%v", want, got)
+		}
+	}
+
+	if val != "" || f.Value != nil {
+		if want, got := val, f.Value.String(); want != got {
+			t.Fatalf("field value mismatch, want=%v got=%v", want, got)
+		}
 	}
 }
 

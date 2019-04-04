@@ -41,6 +41,58 @@ test = "World";
 	}
 }
 
+func TestEnum(t *testing.T) {
+	output := compileProgram(t, `
+type test enum {
+    None = 0
+    Blah = 1
+    Yu = 2
+}
+
+var v = test.Blah
+if v == test.Yu { 
+    return false
+}`)
+
+	if want, got := `const test = Object.freeze({
+None: { name: "None", value: 0 },
+Blah: { name: "Blah", value: 1 },
+Yu: { name: "Yu", value: 2 }
+});
+let v = test.Blah;
+if (v === test.Yu) {
+return false;
+};`, output; want != got {
+		t.Fatalf("output wanted:\n%v\ngot:\n%v", want, got)
+	}
+}
+
+func TestStruct(t *testing.T) {
+	output := compileProgram(t, `
+type Test struct {
+    val int
+    val2 string
+}
+
+var v Test
+if v.val == 100 { 
+    return false
+}`)
+
+	if want, got := `class Test {
+constructor(val, val2) {
+this.val = val;
+this.val2 = val2;
+};
+};
+let v = new Test();
+if (v.val === 100) {
+return false;
+};`, output; want != got {
+		t.Fatalf("output wanted:\n%v\ngot:\n%v", want, got)
+	}
+}
+
 func compileProgram(t *testing.T, program string) string {
 	l := lexer.New(program, "junk")
 	p := parser.New(l)

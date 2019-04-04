@@ -30,6 +30,7 @@ const (
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
+	SELECTOR    // a.b
 )
 
 var precedences = map[token.TokenType]int{
@@ -43,6 +44,7 @@ var precedences = map[token.TokenType]int{
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+	token.DOT:      SELECTOR,
 }
 
 type prefixParseFn func() ast.Expression
@@ -72,6 +74,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.DOT, p.parseSelectorExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -148,6 +151,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.VAR:
 		return p.parseVarStatement()
+	case token.TYPE:
+		return p.parseTypeDeclStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
 	case token.IF:
@@ -167,6 +172,125 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
+func (p *Parser) parseTypeDeclStatement() *ast.TypeDeclStatement {
+	p.expect(token.TYPE)
+	s := &ast.TypeDeclStatement{Token: p.curToken}
+
+	// capture the name
+	p.nextToken()
+	p.expect(token.IDENT)
+	s.Name = p.parseIdentifier().(*ast.Identifier)
+
+	p.nextToken()
+	//could be enum or struct
+	switch p.curToken.Type {
+	case token.STRUCT:
+		s.TypeDef = p.parseStructExpression()
+	case token.ENUM:
+		s.TypeDef = p.parseEnumExpression()
+	default:
+		p.errExpected("struct or enum")
+		return nil
+	}
+
+	return s
+}
+
+func (p *Parser) parseStructExpression() *ast.StructExpression {
+	p.expect(token.STRUCT)
+	e := &ast.StructExpression{Token: p.curToken, Fields: &ast.FieldList{}}
+
+	// should be on the LBRACE
+	p.nextToken()
+	p.expect(token.LBRACE)
+	e.Fields.Opening = p.curToken
+
+	// move past LBRACE
+	p.nextToken()
+	// now parse the fields in a loop
+	for p.curTokenIs(token.IDENT) {
+		e.Fields.Fields = append(e.Fields.Fields, p.parseFieldDecl())
+	}
+
+	p.expect(token.RBRACE)
+	e.Fields.Closing = p.curToken
+
+	p.nextToken()
+
+	return e
+}
+
+func (p *Parser) parseEnumExpression() *ast.EnumExpression {
+	p.expect(token.ENUM)
+	e := &ast.EnumExpression{Token: p.curToken, Fields: &ast.FieldList{}}
+
+	// should be on the LBRACE
+	p.nextToken()
+	p.expect(token.LBRACE)
+	e.Fields.Opening = p.curToken
+
+	p.nextToken()
+	// now parse the fields in a loop
+	for p.curTokenIs(token.IDENT) {
+		e.Fields.Fields = append(e.Fields.Fields, p.parseFieldDecl())
+	}
+
+	p.expect(token.RBRACE)
+	e.Fields.Closing = p.curToken
+
+	p.nextToken()
+
+	return e
+}
+
+func (p *Parser) parseFieldDecl() *ast.Field {
+	// name type [= exp]
+	p.expect(token.IDENT)
+	f := &ast.Field{}
+	f.Name = p.parseIdentifier().(*ast.Identifier)
+
+	p.nextToken()
+
+	//could be enum or struct
+	switch p.curToken.Type {
+	case token.SEMICOLON:
+		// type matches the name, done
+		f.Type = f.Name
+	case token.ASSIGN:
+		// like a const/enum: someVal = 0
+		p.nextToken()
+		f.Value = p.parseExpression(LOWEST)
+		//TODO: validate expression is only literals
+
+	case token.IDENT:
+		// named type ident
+		f.Type = p.parseIdentifier()
+		p.nextToken()
+		if p.curTokenIs(token.ASSIGN) {
+			p.nextToken()
+			f.Value = p.parseExpression(LOWEST)
+			//TODO: validate expression is only literals
+		}
+	case token.STRUCT:
+		// struct literal
+		f.Type = p.parseStructExpression()
+	case token.ENUM:
+		// enum literal
+		f.Type = p.parseEnumExpression()
+	default:
+		p.errExpected("end of statement, an identifier, a struct, or an enum")
+		return nil
+	}
+
+	// eat the semicolon at the end, can't require it
+	// because the final item in a block does not require it
+	if p.curTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return f
+}
+
 func (p *Parser) parseVarStatement() *ast.VarStatement {
 	stmt := &ast.VarStatement{Token: p.curToken}
 
@@ -178,12 +302,18 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	p.nextToken()
-	if !p.expect(token.ASSIGN) {
-		return nil
-	}
 
-	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
+	// either be an type OR a assignment
+	if p.curTokenIs(token.ASSIGN) {
+		p.nextToken()
+		stmt.Value = p.parseExpression(LOWEST)
+	} else {
+		stmt.Type = p.parseExpression(LOWEST)
+
+		if p.curTokenIs(token.ASSIGN) {
+			stmt.Value = p.parseExpression(LOWEST)
+		}
+	}
 
 	if fl, ok := stmt.Value.(*ast.FunctionLiteral); ok {
 		fl.Name = stmt.Name.Value
@@ -239,11 +369,23 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	return expression
 }
 
+func (p *Parser) parseSelectorExpression(left ast.Expression) ast.Expression {
+	exp := &ast.SelectorExpression{
+		Token: p.curToken,
+		Lhs:   left,
+	}
+
+	p.expectPeek(token.IDENT)
+	exp.Sel = p.parseIdentifier().(*ast.Identifier)
+	p.nextToken()
+
+	return exp
+}
+
 func (p *Parser) parseSimpleStatement() ast.Statement {
 	// parse LHS - as an expression
 	left := p.parseExpression(LOWEST)
 
-	println("post-left: ", p.curToken.Literal)
 	// if our next token is
 	switch p.curToken.Type {
 	case token.ASSIGN:
@@ -252,7 +394,6 @@ func (p *Parser) parseSimpleStatement() ast.Statement {
 		p.nextToken()
 		right := p.parseExpression(LOWEST)
 
-		println("post-right: ", string(p.curToken.Type))
 		return &ast.AssignStatement{
 			Token:    op,
 			Lhs:      left,
@@ -308,6 +449,12 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
 		} else {
+			p.nextToken()
+		}
+
+		//parse the semicolon if we're not at the rbrace already
+		if !p.curTokenIs(token.RBRACE) {
+			p.expect(token.SEMICOLON)
 			p.nextToken()
 		}
 	}

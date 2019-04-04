@@ -33,6 +33,7 @@ const (
 	COMMA     = ","
 	SEMICOLON = ";"
 	COLON     = ":"
+	DOT       = "."
 
 	LPAREN   = "("
 	RPAREN   = ")"
@@ -51,6 +52,8 @@ const (
 	RETURN   = "RETURN"
 	CONST    = "CONST"
 	STRUCT   = "STRUCT"
+	TYPE     = "TYPE"
+	ENUM     = "ENUM"
 )
 
 type Token struct {
@@ -60,6 +63,10 @@ type Token struct {
 	// for diagnostics
 	LineNum, ColNum int
 	FileName        string
+}
+
+func (t *Token) String() string {
+	return t.Literal + " [" + string(t.Type) + "]"
 }
 
 var keywords = map[string]TokenType{
@@ -72,6 +79,8 @@ var keywords = map[string]TokenType{
 	"else":   ELSE,
 	"return": RETURN,
 	"struct": STRUCT,
+	"type":   TYPE,
+	"enum":   ENUM,
 }
 
 func LookupIdent(ident string) TokenType {

@@ -1,0 +1,24 @@
+catch e => console.log(e)
+
+type Result enum {
+	Success []struct { name string, years int, rate float }
+	Err struct { errText string }
+	Other string
+}
+
+//TODO:
+// easy retry
+// timeout
+rates := http.Get(url).BodyAsJson<Result>(json.NoValidate)
+
+match rates {
+	Success(s) => {
+		var html string
+		for _, rate := range s {
+			html += `<tr><td>${rate.name}</td><td>${rate.years}</td><td>${rate.rate}%</td></tr>`
+		}
+		dom.GetElementById("rates").Expect("#rates element").InnerHTML = html
+	},
+	Err(e) => showTempErrorPanel(e.errText),
+	Other(s) => showTempErrorPanel(s),
+}

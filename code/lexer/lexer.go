@@ -91,6 +91,8 @@ func lexText(l *Lexer) stateFn {
 		if l.parenDepth < 0 {
 			return l.errorf("unexpected right paren %#U", r)
 		}
+	case r == '.':
+		l.emit(token.DOT)
 	case r == ',':
 		l.emit(token.COMMA)
 	case r == ';':
