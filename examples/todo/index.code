@@ -8,9 +8,9 @@ type todo struct {
 }
 
 type activeFilter enum {
-    None = 0
-    Active = 1
-    Completed = 2
+    None
+    Active
+    Completed
 }
 
 ////////////////////////////
