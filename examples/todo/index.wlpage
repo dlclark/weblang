@@ -17,7 +17,7 @@
 					<input id="toggle-all" class="toggle-all" type="checkbox" @checked="allDone">
 					<label for="toggle-all">Mark all as complete</label>
 					<ul class="todo-list">
-						{{for todo := range filter(todos, toCurFilter)}}
+						{{for _, todo := range todos.Filter(toCurFilter)}}
 							<li class="{{if todo.isCompleted}}completed{{/if}} {{if todo.isEditing}}editing{{/if}}">
 								<div class="view">
 									<input class="toggle" type="checkbox" {{if todo.isCompleted}}checked{{/if}}>

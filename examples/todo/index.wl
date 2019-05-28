@@ -34,11 +34,11 @@ var toggle-all html.Input
 //// helper funcs
 
 func activeTodoCount() int {
-    return len(filter(todos, t => !t.isCompleted))
+    return todos.Filter(t => !t.isCompleted).Length()
 } 
 
 func completedTodoCount() int {
-    return len(filter(todos, t => t.isCompleted))
+    return todos.Filter(t => t.isCompleted).Length()
 }
 
 // return true to be included in the results
@@ -58,14 +58,14 @@ func toCurFilter(todo t) bool {
 
 func addTodo(e events.KeyUp) {
     todos = append(todos, todo{ 
-        title: strings.Trim(newTodo.value),
+        title: newTodo.Value.Trim(),
     })
     newTodo.value = ""
 }
 
 func allDone() {
-    for t := range todos {
-        t.isCompleted = toggle-all.checked
+    for _, t := range todos {
+        t.isCompleted = toggleAll.Checked
     }
 }
 
@@ -75,7 +75,7 @@ func removeTodo(t todo) {
 
 func editTodo(t todo) {
     t.isEditing = true
-    todoEditBox.value = t.title
+    todoEditBox.Value = t.title
 }
 
 func doneEdit(t todo) {
@@ -84,7 +84,7 @@ func doneEdit(t todo) {
     }
 
     t.isEditing = false 
-    if val := strings.Trim(todoEditBox.value); len(val) > 0 {
+    if val := todoEditBox.Value.Trim(); len(val) > 0 {
         t.title = val
     } else {
         removeTodo(t)
@@ -96,5 +96,5 @@ func cancelEdit(t todo) {
 }
 
 func removeCompleted() {
-    todos = filter(todos, t => !t.isCompleted)
+    todos = todos.Filter(t => !t.isCompleted).ToSlice()
 }
