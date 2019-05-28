@@ -64,30 +64,18 @@ var tokens = [...]elt{
 	{token.FLOAT, "1e+100", literal},
 	{token.FLOAT, "1e-100", literal},
 	{token.FLOAT, "2.71828e-1000", literal},
-	{token.IMAG, "0i", literal},
-	{token.IMAG, "1i", literal},
-	{token.IMAG, "012345678901234567889i", literal},
-	{token.IMAG, "123456789012345678890i", literal},
-	{token.IMAG, "0.i", literal},
-	{token.IMAG, ".0i", literal},
-	{token.IMAG, "3.14159265i", literal},
-	{token.IMAG, "1e0i", literal},
-	{token.IMAG, "1e+100i", literal},
-	{token.IMAG, "1e-100i", literal},
-	{token.IMAG, "2.71828e-1000i", literal},
-	{token.CHAR, "'a'", literal},
-	{token.CHAR, "'\\000'", literal},
-	{token.CHAR, "'\\xFF'", literal},
-	{token.CHAR, "'\\uff16'", literal},
-	{token.CHAR, "'\\U0000ff16'", literal},
-	{token.STRING, "`foobar`", literal},
-	{token.STRING, "`" + `foo
+	{token.STRING, `"foobar"`, literal},
+	{token.STRING, `"fo\nobar"`, literal},
+	{token.STRING, `"foo bar"`, literal},
+	{token.STRING, `"foo \" bar"`, literal},
+	{token.TEMPLATE, "`foobar`", literal},
+	{token.TEMPLATE, "`" + `foo
 	                        bar` +
 		"`",
 		literal,
 	},
-	{token.STRING, "`\r`", literal},
-	{token.STRING, "`foo\r\nbar`", literal},
+	{token.TEMPLATE, "`\r`", literal},
+	{token.TEMPLATE, "`foo\r\nbar`", literal},
 
 	// Operators and delimiters
 	{token.ADD, "+", operator},
@@ -348,6 +336,7 @@ func checkSemi(t *testing.T, line string, mode Mode) {
 }
 
 var lines = []string{
+	"&&\n",
 	// # indicates a semicolon present in the source
 	// $ indicates an automatically inserted semicolon
 	"",
@@ -356,7 +345,7 @@ var lines = []string{
 	"foo$\n",
 	"123$\n",
 	"1.2$\n",
-	"'x'$\n",
+	//"'x'$\n",
 	`"x"` + "$\n",
 	"`x`$\n",
 
@@ -366,12 +355,12 @@ var lines = []string{
 	"/\n",
 	"%\n",
 
-	"&\n",
-	"|\n",
-	"^\n",
-	"<<\n",
-	">>\n",
-	"&^\n",
+	//"&\n",
+	//"|\n",
+	//"^\n",
+	//"<<\n",
+	//">>\n",
+	//"&^\n",
 
 	"+=\n",
 	"-=\n",
@@ -379,16 +368,15 @@ var lines = []string{
 	"/=\n",
 	"%=\n",
 
-	"&=\n",
-	"|=\n",
-	"^=\n",
-	"<<=\n",
-	">>=\n",
-	"&^=\n",
+	//"&=\n",
+	//"|=\n",
+	//"^=\n",
+	//"<<=\n",
+	//">>=\n",
+	//"&^=\n",
 
-	"&&\n",
 	"||\n",
-	"<-\n",
+	//"<-\n",
 	"++$\n",
 	"--$\n",
 
@@ -416,33 +404,35 @@ var lines = []string{
 	"#;\n",
 	":\n",
 
+	"=>\n",
+
 	"break$\n",
 	"case\n",
-	"chan\n",
 	"const\n",
 	"continue$\n",
 
 	"default\n",
-	"defer\n",
+	//"defer\n",
 	"else\n",
 	"fallthrough$\n",
 	"for\n",
 
 	"func\n",
-	"go\n",
+	//"go\n",
 	"goto\n",
 	"if\n",
 	"import\n",
 
 	"interface\n",
-	"map\n",
 	"package\n",
 	"range\n",
 	"return$\n",
 
-	"select\n",
 	"struct\n",
+	"enum\n",
 	"switch\n",
+	"match\n",
+	"catch\n",
 	"type\n",
 	"var\n",
 
@@ -639,8 +629,8 @@ func TestInit(t *testing.T) {
 		t.Errorf("bad file size: got %d, expected %d", f2.Size(), len(src2))
 	}
 	_, tok, _ = s.Scan() // go
-	if tok != token.GO {
-		t.Errorf("bad token: got %s, expected %s", tok, token.GO)
+	if tok != token.IDENT {
+		t.Errorf("bad token: got %s, expected %s", tok, token.IDENT)
 	}
 
 	if s.ErrorCount != 0 {
@@ -739,44 +729,12 @@ var errors = []struct {
 	{`#`, token.ILLEGAL, 0, "", "illegal character U+0023 '#'"},
 	{`…`, token.ILLEGAL, 0, "", "illegal character U+2026 '…'"},
 	{"..", token.PERIOD, 0, "", ""}, // two periods, not invalid token (issue #28112)
-	{`' '`, token.CHAR, 0, `' '`, ""},
-	{`''`, token.CHAR, 0, `''`, "illegal rune literal"},
-	{`'12'`, token.CHAR, 0, `'12'`, "illegal rune literal"},
-	{`'123'`, token.CHAR, 0, `'123'`, "illegal rune literal"},
-	{`'\0'`, token.CHAR, 3, `'\0'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\07'`, token.CHAR, 4, `'\07'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\8'`, token.CHAR, 2, `'\8'`, "unknown escape sequence"},
-	{`'\08'`, token.CHAR, 3, `'\08'`, "illegal character U+0038 '8' in escape sequence"},
-	{`'\x'`, token.CHAR, 3, `'\x'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\x0'`, token.CHAR, 4, `'\x0'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\x0g'`, token.CHAR, 4, `'\x0g'`, "illegal character U+0067 'g' in escape sequence"},
-	{`'\u'`, token.CHAR, 3, `'\u'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\u0'`, token.CHAR, 4, `'\u0'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\u00'`, token.CHAR, 5, `'\u00'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\u000'`, token.CHAR, 6, `'\u000'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\u000`, token.CHAR, 6, `'\u000`, "escape sequence not terminated"},
-	{`'\u0000'`, token.CHAR, 0, `'\u0000'`, ""},
-	{`'\U'`, token.CHAR, 3, `'\U'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U0'`, token.CHAR, 4, `'\U0'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U00'`, token.CHAR, 5, `'\U00'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U000'`, token.CHAR, 6, `'\U000'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U0000'`, token.CHAR, 7, `'\U0000'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U00000'`, token.CHAR, 8, `'\U00000'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U000000'`, token.CHAR, 9, `'\U000000'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U0000000'`, token.CHAR, 10, `'\U0000000'`, "illegal character U+0027 ''' in escape sequence"},
-	{`'\U0000000`, token.CHAR, 10, `'\U0000000`, "escape sequence not terminated"},
-	{`'\U00000000'`, token.CHAR, 0, `'\U00000000'`, ""},
-	{`'\Uffffffff'`, token.CHAR, 2, `'\Uffffffff'`, "escape sequence is invalid Unicode code point"},
-	{`'`, token.CHAR, 0, `'`, "rune literal not terminated"},
-	{`'\`, token.CHAR, 2, `'\`, "escape sequence not terminated"},
-	{"'\n", token.CHAR, 0, "'", "rune literal not terminated"},
-	{"'\n   ", token.CHAR, 0, "'", "rune literal not terminated"},
 	{`""`, token.STRING, 0, `""`, ""},
 	{`"abc`, token.STRING, 0, `"abc`, "string literal not terminated"},
 	{"\"abc\n", token.STRING, 0, `"abc`, "string literal not terminated"},
 	{"\"abc\n   ", token.STRING, 0, `"abc`, "string literal not terminated"},
-	{"``", token.STRING, 0, "``", ""},
-	{"`", token.STRING, 0, "`", "raw string literal not terminated"},
+	{"``", token.TEMPLATE, 0, "``", ""},
+	{"`", token.TEMPLATE, 0, "`", "string template not terminated"},
 	{"/**/", token.COMMENT, 0, "/**/", ""},
 	{"/*", token.COMMENT, 0, "/*", "comment not terminated"},
 	{"077", token.INT, 0, "077", ""},
@@ -792,7 +750,6 @@ var errors = []struct {
 	{"\"abc\x80def\"", token.STRING, 4, "\"abc\x80def\"", "illegal UTF-8 encoding"},
 	{"\ufeff\ufeff", token.ILLEGAL, 3, "\ufeff\ufeff", "illegal byte order mark"},                        // only first BOM is ignored
 	{"//\ufeff", token.COMMENT, 2, "//\ufeff", "illegal byte order mark"},                                // only first BOM is ignored
-	{"'\ufeff" + `'`, token.CHAR, 1, "'\ufeff" + `'`, "illegal byte order mark"},                         // only first BOM is ignored
 	{`"` + "abc\ufeffdef" + `"`, token.STRING, 4, `"` + "abc\ufeffdef" + `"`, "illegal byte order mark"}, // only first BOM is ignored
 }
 

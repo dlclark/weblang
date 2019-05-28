@@ -433,10 +433,10 @@ exponent:
 		}
 	}
 
-	if s.ch == 'i' {
+	/*if s.ch == 'i' {
 		tok = token.IMAG
 		s.next()
-	}
+	}*/
 
 exit:
 	return tok, string(s.src[offs:s.offset])
@@ -582,7 +582,7 @@ func (s *Scanner) scanRawString() string {
 	for {
 		ch := s.ch
 		if ch < 0 {
-			s.error(offs, "raw string literal not terminated")
+			s.error(offs, "string template not terminated")
 			break
 		}
 		s.next()
@@ -726,13 +726,13 @@ scanAgain:
 			insertSemi = true
 			tok = token.STRING
 			lit = s.scanString()
-		case '\'':
-			insertSemi = true
-			tok = token.CHAR
-			lit = s.scanRune()
+		/*case '\'':
+		insertSemi = true
+		tok = token.CHAR
+		lit = s.scanRune()*/
 		case '`':
 			insertSemi = true
-			tok = token.STRING
+			tok = token.TEMPLATE
 			lit = s.scanRawString()
 		case ':':
 			tok = s.switch2(token.COLON, token.DEFINE)
@@ -818,11 +818,12 @@ scanAgain:
 			//tok = s.switch4(token.GTR, token.GEQ, '>', token.SHR, token.SHR_ASSIGN)
 			tok = s.switch2(token.GTR, token.GEQ)
 		case '=':
-			tok = s.switch2(token.ASSIGN, token.EQL)
+			tok = s.switch3(token.ASSIGN, token.EQL, '>', token.RARROW)
 		case '!':
 			tok = s.switch2(token.NOT, token.NEQ)
 		case '&':
 			if s.ch == '&' {
+				s.next()
 				tok = token.LAND
 			}
 			//if s.ch == '^' {
@@ -833,6 +834,7 @@ scanAgain:
 			//}
 		case '|':
 			if s.ch == '|' {
+				s.next()
 				tok = token.LOR
 			}
 			//tok = s.switch3(token.OR, token.OR_ASSIGN, '|', token.LOR)

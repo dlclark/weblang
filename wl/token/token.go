@@ -21,9 +21,7 @@ const (
 	IDENT    // main
 	INT      // 12345
 	FLOAT    // 123.45
-	IMAG     // 123.45i
-	CHAR     // 'a'
-	STRING   // "abc"
+	STRING   // "foobar"
 	TEMPLATE // `foobar`
 	literal_end
 
@@ -114,8 +112,6 @@ var tokens = [...]string{
 	IDENT:    "IDENT",
 	INT:      "INT",
 	FLOAT:    "FLOAT",
-	IMAG:     "IMAG",
-	CHAR:     "CHAR",
 	STRING:   "STRING",
 	TEMPLATE: "TEMPLATE",
 
