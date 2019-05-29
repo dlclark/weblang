@@ -95,8 +95,8 @@ const (
 
 	STRUCT
 	ENUM
+	UNION
 	SWITCH
-	MATCH
 	CATCH
 	TYPE
 	VAR
@@ -180,8 +180,8 @@ var tokens = [...]string{
 
 	STRUCT: "struct",
 	ENUM:   "enum",
+	UNION:  "union",
 	SWITCH: "switch",
-	MATCH:  "match",
 	CATCH:  "catch",
 	TYPE:   "type",
 	VAR:    "var",

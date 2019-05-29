@@ -5,11 +5,11 @@ package ast_test
 import (
 	"bytes"
 	"fmt"
-	. "go/ast"
-	"go/parser"
-	"go/token"
 	"sort"
 	"testing"
+	. "weblang/wl/ast"
+	"weblang/wl/parser"
+	"weblang/wl/token"
 )
 
 const src = `

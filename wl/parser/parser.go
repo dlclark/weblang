@@ -482,7 +482,6 @@ var stmtStart = map[token.Token]bool{
 	token.IF:          true,
 	token.RETURN:      true,
 	token.SWITCH:      true,
-	token.MATCH:       true,
 	token.CATCH:       true,
 	token.TYPE:        true,
 	token.VAR:         true,
@@ -715,7 +714,7 @@ func (p *parser) parseFieldDecl(scope *ast.Scope) *ast.Field {
 		if n := len(list); n > 1 {
 			p.errorExpected(p.pos, "type")
 			typ = &ast.BadExpr{From: p.pos, To: p.pos}
-		} else if !isTypeName(deref(typ)) {
+		} else if !isTypeName(typ) { // deref
 			p.errorExpected(typ.Pos(), "anonymous field")
 			typ = &ast.BadExpr{From: typ.Pos(), To: p.safePos(typ.End())}
 		}
@@ -764,7 +763,7 @@ func (p *parser) parseStructType() *ast.StructType {
 	}
 }
 
-func (p *parser) parsePointerType() *ast.StarExpr {
+/*func (p *parser) parsePointerType() *ast.StarExpr {
 	if p.trace {
 		defer un(trace(p, "PointerType"))
 	}
@@ -773,7 +772,7 @@ func (p *parser) parsePointerType() *ast.StarExpr {
 	base := p.parseType()
 
 	return &ast.StarExpr{Star: star, X: base}
-}
+}*/
 
 // If the result is an identifier, it is not resolved.
 func (p *parser) tryVarType(isParam bool) ast.Expr {
@@ -1020,8 +1019,8 @@ func (p *parser) tryIdentOrType() ast.Expr {
 		return p.parseArrayType()
 	case token.STRUCT:
 		return p.parseStructType()
-	case token.MUL:
-		return p.parsePointerType()
+	//case token.MUL:
+	//	return p.parsePointerType()
 	case token.FUNC:
 		typ, _ := p.parseFuncType()
 		return typ
@@ -1134,7 +1133,7 @@ func (p *parser) parseOperand(lhs bool) ast.Expr {
 		}
 		return x
 
-	case token.INT, token.FLOAT, token.IMAG, token.CHAR, token.STRING:
+	case token.INT, token.FLOAT, token.TEMPLATE, token.STRING:
 		x := &ast.BasicLit{ValuePos: p.pos, Kind: p.tok, Value: p.lit}
 		p.next()
 		return x
@@ -1376,7 +1375,7 @@ func (p *parser) checkExpr(x ast.Expr) ast.Expr {
 		// a type switch. Instead be lenient and test this in the type
 		// checker.
 	case *ast.CallExpr:
-	case *ast.StarExpr:
+	//case *ast.StarExpr:
 	case *ast.UnaryExpr:
 	case *ast.BinaryExpr:
 	default:
@@ -1411,7 +1410,7 @@ func isLiteralType(x ast.Expr) bool {
 		return isIdent
 	case *ast.ArrayType:
 	case *ast.StructType:
-	case *ast.MapType:
+	//case *ast.MapType:
 	default:
 		return false // all other nodes are not legal composite literal types
 	}
@@ -1419,12 +1418,12 @@ func isLiteralType(x ast.Expr) bool {
 }
 
 // If x is of the form *T, deref returns T, otherwise it returns x.
-func deref(x ast.Expr) ast.Expr {
+/*func deref(x ast.Expr) ast.Expr {
 	if p, isPtr := x.(*ast.StarExpr); isPtr {
 		x = p.X
 	}
 	return x
-}
+}*/
 
 // If x is of the form (T), unparen returns unparen(T), otherwise it returns x.
 func unparen(x ast.Expr) ast.Expr {
@@ -1521,58 +1520,59 @@ func (p *parser) parseUnaryExpr(lhs bool) ast.Expr {
 		x := p.parseUnaryExpr(false)
 		return &ast.UnaryExpr{OpPos: pos, Op: op, X: p.checkExpr(x)}
 
-	/*case token.ARROW:
-	// channel type or receive expression
-	arrow := p.pos
-	p.next()
-
-	// If the next token is token.CHAN we still don't know if it
-	// is a channel type or a receive operation - we only know
-	// once we have found the end of the unary expression. There
-	// are two cases:
-	//
-	//   <- type  => (<-type) must be channel type
-	//   <- expr  => <-(expr) is a receive from an expression
-	//
-	// In the first case, the arrow must be re-associated with
-	// the channel type parsed already:
-	//
-	//   <- (chan type)    =>  (<-chan type)
-	//   <- (chan<- type)  =>  (<-chan (<-type))
-
-	x := p.parseUnaryExpr(false)
-
-	// determine which case we have
-	if typ, ok := x.(*ast.ChanType); ok {
-		// (<-type)
-
-		// re-associate position info and <-
-		dir := ast.SEND
-		for ok && dir == ast.SEND {
-			if typ.Dir == ast.RECV {
-				// error: (<-type) is (<-(<-chan T))
-				p.errorExpected(typ.Arrow, "'chan'")
-			}
-			arrow, typ.Begin, typ.Arrow = typ.Arrow, arrow, arrow
-			dir, typ.Dir = typ.Dir, ast.RECV
-			typ, ok = typ.Value.(*ast.ChanType)
-		}
-		if dir == ast.SEND {
-			p.errorExpected(arrow, "channel type")
-		}
-
-		return x
-	}
-
-	// <-(expr)
-	return &ast.UnaryExpr{OpPos: arrow, Op: token.ARROW, X: p.checkExpr(x)}
-	*/
-	case token.MUL:
-		// pointer type or unary "*" expression
-		pos := p.pos
+		/*case token.ARROW:
+		// channel type or receive expression
+		arrow := p.pos
 		p.next()
+
+		// If the next token is token.CHAN we still don't know if it
+		// is a channel type or a receive operation - we only know
+		// once we have found the end of the unary expression. There
+		// are two cases:
+		//
+		//   <- type  => (<-type) must be channel type
+		//   <- expr  => <-(expr) is a receive from an expression
+		//
+		// In the first case, the arrow must be re-associated with
+		// the channel type parsed already:
+		//
+		//   <- (chan type)    =>  (<-chan type)
+		//   <- (chan<- type)  =>  (<-chan (<-type))
+
 		x := p.parseUnaryExpr(false)
-		return &ast.StarExpr{Star: pos, X: p.checkExprOrType(x)}
+
+		// determine which case we have
+		if typ, ok := x.(*ast.ChanType); ok {
+			// (<-type)
+
+			// re-associate position info and <-
+			dir := ast.SEND
+			for ok && dir == ast.SEND {
+				if typ.Dir == ast.RECV {
+					// error: (<-type) is (<-(<-chan T))
+					p.errorExpected(typ.Arrow, "'chan'")
+				}
+				arrow, typ.Begin, typ.Arrow = typ.Arrow, arrow, arrow
+				dir, typ.Dir = typ.Dir, ast.RECV
+				typ, ok = typ.Value.(*ast.ChanType)
+			}
+			if dir == ast.SEND {
+				p.errorExpected(arrow, "channel type")
+			}
+
+			return x
+		}
+
+		// <-(expr)
+		return &ast.UnaryExpr{OpPos: arrow, Op: token.ARROW, X: p.checkExpr(x)}
+
+		case token.MUL:
+			// pointer type or unary "*" expression
+			pos := p.pos
+			p.next()
+			x := p.parseUnaryExpr(false)
+			return &ast.StarExpr{Star: pos, X: p.checkExprOrType(x)}
+		*/
 	}
 
 	return p.parsePrimaryExpr(lhs)
@@ -2206,7 +2206,7 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 		s = &ast.DeclStmt{Decl: p.parseDecl(stmtStart)}
 	case
 		// tokens that may start an expression
-		token.IDENT, token.INT, token.FLOAT, token.IMAG, token.CHAR, token.STRING, token.FUNC, token.LPAREN, // operands
+		token.IDENT, token.INT, token.FLOAT, token.TEMPLATE, token.STRING, token.FUNC, token.LPAREN, // operands
 		token.LBRACK, token.STRUCT, // composite types
 		token.ADD, token.SUB, token.MUL: // unary operators
 		s, _ = p.parseSimpleStmt(labelOk)

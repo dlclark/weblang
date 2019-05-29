@@ -93,6 +93,10 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Type)
 		Walk(v, n.Body)
 
+	case *LambdaLit:
+		Walk(v, n.Params)
+		Walk(v, n.Body)
+
 	case *CompositeLit:
 		if n.Type != nil {
 			Walk(v, n.Type)
@@ -132,8 +136,8 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Fun)
 		walkExprList(v, n.Args)
 
-	case *StarExpr:
-		Walk(v, n.X)
+	//case *StarExpr:
+	//	Walk(v, n.X)
 
 	case *UnaryExpr:
 		Walk(v, n.X)
@@ -154,9 +158,15 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Elt)
 
 	case *StructType:
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
 		Walk(v, n.Fields)
 
 	case *FuncType:
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
 		if n.Params != nil {
 			Walk(v, n.Params)
 		}
@@ -165,15 +175,31 @@ func Walk(v Visitor, node Node) {
 		}
 
 	case *InterfaceType:
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
+
 		Walk(v, n.Methods)
 
-	case *MapType:
+	case *EnumType:
+		Walk(v, n.Type)
+		for _, s := range n.Specs {
+			Walk(v, s)
+		}
+
+	case *UnionType:
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
+		Walk(v, n.SubTypes)
+
+	/*case *MapType:
 		Walk(v, n.Key)
 		Walk(v, n.Value)
 
 	case *ChanType:
 		Walk(v, n.Value)
-
+	*/
 	// Statements
 	case *BadStmt:
 		// nothing to do
@@ -191,10 +217,10 @@ func Walk(v Visitor, node Node) {
 	case *ExprStmt:
 		Walk(v, n.X)
 
-	case *SendStmt:
-		Walk(v, n.Chan)
-		Walk(v, n.Value)
-
+	/*case *SendStmt:
+	Walk(v, n.Chan)
+	Walk(v, n.Value)
+	*/
 	case *IncDecStmt:
 		Walk(v, n.X)
 
@@ -202,12 +228,12 @@ func Walk(v Visitor, node Node) {
 		walkExprList(v, n.Lhs)
 		walkExprList(v, n.Rhs)
 
-	case *GoStmt:
+	/*case *GoStmt:
 		Walk(v, n.Call)
 
 	case *DeferStmt:
 		Walk(v, n.Call)
-
+	*/
 	case *ReturnStmt:
 		walkExprList(v, n.Results)
 
@@ -249,15 +275,21 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Assign)
 		Walk(v, n.Body)
 
-	case *CommClause:
-		if n.Comm != nil {
-			Walk(v, n.Comm)
+	case *UnionSwitchStmt:
+		if n.Init != nil {
+			Walk(v, n.Init)
 		}
-		walkStmtList(v, n.Body)
+		Walk(v, n.Assign)
+		Walk(v, n.Body)
+	/*case *CommClause:
+	if n.Comm != nil {
+		Walk(v, n.Comm)
+	}
+	walkStmtList(v, n.Body)
 
 	case *SelectStmt:
 		Walk(v, n.Body)
-
+	*/
 	case *ForStmt:
 		if n.Init != nil {
 			Walk(v, n.Init)
@@ -279,6 +311,9 @@ func Walk(v Visitor, node Node) {
 		}
 		Walk(v, n.X)
 		Walk(v, n.Body)
+
+	case *CatchStmt:
+		Walk(v, n.Fun)
 
 	// Declarations
 	case *ImportSpec:

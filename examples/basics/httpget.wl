@@ -5,7 +5,7 @@ imports (
     "html/dom"
 )
 
-type Result enum {
+type Result union {
 	Success []struct { 
         name string 
         years int
@@ -18,6 +18,19 @@ type Result enum {
 	Other string
 }
 
+type blah interface<T> {    // generics on interfaces
+    Function<K>(in K) T     //functions on interfaces
+    val T                   //fields on interfaces
+}
+
+type blahstruct struct {
+    val int
+}
+
+func (b blahstruct) Function<K>(in K) int {
+    return b.val
+}
+
 // set our default options for http requests
 http.DefaultClient = { 
     RetryGetTransientErrCount: 10, 
@@ -26,7 +39,10 @@ http.DefaultClient = {
 }
 
 func SomeFunc(url string) {
-    catch e => console.log(e)
+    catch func(e error) {
+        console.log(e)
+    } 
+    catch e => { console.log(e) }
 
     // http.Get() will retry on transient errors and throw if it fails to get a response from the server
     // after the specified timeout.
@@ -34,24 +50,37 @@ func SomeFunc(url string) {
     // using the rules passed in into a type T.
     rates := http.Get(url).RequireStatus(http.StatusCodes.OK).BodyAsJson<Result>(json.NoValidate)
 
-    match rates {
-        Success(s) => {
-            var html string
-            for _, rate := range s {
-                html += `<tr><td>${rate.name}</td><td>${rate.years}</td><td>${rate.rate}%</td></tr>`
-            }
-            dom.MustGetElementById("rates").InnerHTML = html
-        },
-        Err(e) => showTempErrorPanel(e.errText),
-        Other(s) => showTempErrorPanel(s),
+    switch r := rates.(union) {
+    case Success:
+        var html string
+        for _, rate := range r {
+            html += `<tr><td>${rate.name}</td><td>${rate.years}</td><td>${rate.rate}%</td></tr>`
+        }
+        dom.MustGetElementById("rates").InnerHTML = html
+    case Err:
+        showTempErrorPanel(r.errText)
+    case Other:
+        showTempErrorPanel(r)
     }
+
+    d := []blahstruct{
+        {
+            val: 1,
+        },
+    }
+    Covariant(d)
+}
+
+func Covariant<T>(in []blah<T>) T {
+    //do stuff with blah<T>
+    return in[0].val
 }
 
 func (r Result) Test<T numeric>(in T) (T, T) {
     return in, in+1
 }
 
-type Queue<T> struct {
+type Queue struct<T> {
     items []T
 }
 
@@ -63,7 +92,7 @@ func (q Queue<T>) Dequeue() Optional(T) {
     return q.items.Shift()
 }
 
-type StatusCodes enum : int {
+type StatusCodes enum int {
     Continue = 100
     OK = 200
     Created

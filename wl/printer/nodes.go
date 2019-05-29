@@ -606,10 +606,10 @@ func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 			maxProblem = mp
 		}
 
-	case *ast.StarExpr:
-		if e.Op == token.QUO { // `*/`
-			maxProblem = 5
-		}
+	//case *ast.StarExpr:
+	//	if e.Op == token.QUO { // `*/`
+	//		maxProblem = 5
+	//	}
 
 	case *ast.UnaryExpr:
 		switch e.Op.String() + r.Op.String() {
@@ -759,19 +759,19 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.print(x.Colon, token.COLON, blank)
 		p.expr(x.Value)
 
-	case *ast.StarExpr:
-		const prec = token.UnaryPrec
-		if prec < prec1 {
-			// parenthesis needed
-			p.print(token.LPAREN)
-			p.print(token.MUL)
-			p.expr(x.X)
-			p.print(token.RPAREN)
-		} else {
-			// no parenthesis needed
-			p.print(token.MUL)
-			p.expr(x.X)
-		}
+	/*case *ast.StarExpr:
+	const prec = token.UnaryPrec
+	if prec < prec1 {
+		// parenthesis needed
+		p.print(token.LPAREN)
+		p.print(token.MUL)
+		p.expr(x.X)
+		p.print(token.RPAREN)
+	} else {
+		// no parenthesis needed
+		p.print(token.MUL)
+		p.expr(x.X)
+	}*/
 
 	case *ast.UnaryExpr:
 		const prec = token.UnaryPrec
@@ -1300,7 +1300,7 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool) {
 		p.print(blank)
 		p.block(s.Body, 0)
 
-	case *ast.CommClause:
+	/*case *ast.CommClause:
 		if s.Comm != nil {
 			p.print(token.CASE, blank)
 			p.stmt(s.Comm, false)
@@ -1310,7 +1310,7 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool) {
 		p.print(s.Colon, token.COLON)
 		p.stmtList(s.Body, 1, nextIsRBrace)
 
-	/*case *ast.SelectStmt:
+	case *ast.SelectStmt:
 	p.print(token.SELECT, blank)
 	body := s.Body
 	if len(body.List) == 0 && !p.commentBefore(p.posFor(body.Rbrace)) {

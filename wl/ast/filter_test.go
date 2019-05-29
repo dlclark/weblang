@@ -4,11 +4,11 @@ package ast_test
 
 import (
 	"bytes"
+	"testing"
 	"weblang/wl/ast"
 	"weblang/wl/format"
 	"weblang/wl/parser"
 	"weblang/wl/token"
-	"testing"
 )
 
 const input = `package p
@@ -20,13 +20,12 @@ func f1() {}
 func f1() {}
 func f2() {}
 
-func (*t1) f1() {}
 func (t1) f1() {}
 func (t1) f2() {}
 
 func (t2) f1() {}
 func (t2) f2() {}
-func (x *t2) f2() {}
+func (x t2) f2() {}
 `
 
 // Calling ast.MergePackageFiles with ast.FilterFuncDuplicates
@@ -48,7 +47,7 @@ func (t1) f2() {}
 
 func (t2) f1() {}
 
-func (x *t2) f2() {}
+func (x t2) f2() {}
 `
 
 func TestFilterDuplicates(t *testing.T) {

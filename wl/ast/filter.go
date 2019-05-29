@@ -15,7 +15,7 @@ func exportFilter(name string) bool {
 	return IsExported(name)
 }
 
-// FileExports trims the AST for a Go source file in place such that
+// FileExports trims the AST for a source file in place such that
 // only exported nodes remain: all top-level identifiers which are not exported
 // and their associated information (such as type, initial value, or function
 // body) are removed. Non-exported fields and methods of exported types are
@@ -27,7 +27,7 @@ func FileExports(src *File) bool {
 	return filterFile(src, exportFilter, true)
 }
 
-// PackageExports trims the AST for a Go package in place such that
+// PackageExports trims the AST for a package in place such that
 // only exported nodes remain. The pkg.Files list is not changed, so that
 // file names and top-level package comments don't get lost.
 //
@@ -66,8 +66,8 @@ func fieldName(x Expr) *Ident {
 		if _, ok := t.X.(*Ident); ok {
 			return t.Sel
 		}
-	case *StarExpr:
-		return fieldName(t.X)
+		//	case *StarExpr:
+		//		return fieldName(t.X)
 	}
 	return nil
 }
@@ -135,6 +135,19 @@ func filterExprList(list []Expr, filter Filter, export bool) []Expr {
 	return list[0:j]
 }
 
+func filterTypeParamsList(types *TypeParameterList, filter Filter, export bool) bool {
+	if types == nil {
+		return false
+	}
+	b := false
+	for _, t := range types.List {
+		if t.Constraint == nil || filterType(t.Constraint, filter, export) {
+			b = true
+		}
+	}
+	return b
+}
+
 func filterParamList(fields *FieldList, filter Filter, export bool) bool {
 	if fields == nil {
 		return false
@@ -157,25 +170,39 @@ func filterType(typ Expr, f Filter, export bool) bool {
 	case *ArrayType:
 		return filterType(t.Elt, f, export)
 	case *StructType:
+		b1 := filterTypeParamsList(t.TypeParams, f, export)
 		if filterFieldList(t.Fields, f, export) {
 			t.Incomplete = true
 		}
-		return len(t.Fields.List) > 0
+		return len(t.Fields.List) > 0 || b1
 	case *FuncType:
 		b1 := filterParamList(t.Params, f, export)
 		b2 := filterParamList(t.Results, f, export)
-		return b1 || b2
+		b3 := filterTypeParamsList(t.TypeParams, f, export)
+		return b1 || b2 || b3
 	case *InterfaceType:
+		b1 := filterTypeParamsList(t.TypeParams, f, export)
 		if filterFieldList(t.Methods, f, export) {
 			t.Incomplete = true
 		}
-		return len(t.Methods.List) > 0
-	case *MapType:
-		b1 := filterType(t.Key, f, export)
-		b2 := filterType(t.Value, f, export)
-		return b1 || b2
-	case *ChanType:
-		return filterType(t.Value, f, export)
+		return len(t.Methods.List) > 0 || b1
+	case *EnumType:
+		t.Specs = filterSpecList(t.Specs, f, export)
+		return len(t.Specs) > 0
+
+	case *UnionType:
+		b1 := filterTypeParamsList(t.TypeParams, f, export)
+		if filterFieldList(t.SubTypes, f, export) {
+			t.Incomplete = true
+		}
+		return len(t.SubTypes.List) > 0 || b1
+
+		/*	case *MapType:
+				b1 := filterType(t.Key, f, export)
+				b2 := filterType(t.Value, f, export)
+				return b1 || b2
+			case *ChanType:
+				return filterType(t.Value, f, export)*/
 	}
 	return false
 }
@@ -319,9 +346,9 @@ func nameOf(f *FuncDecl) string {
 		// looks like a correct receiver declaration
 		t := r.List[0].Type
 		// dereference pointer receiver types
-		if p, _ := t.(*StarExpr); p != nil {
+		/*if p, _ := t.(*StarExpr); p != nil {
 			t = p.X
-		}
+		}*/
 		// the receiver type must be a type name
 		if p, _ := t.(*Ident); p != nil {
 			return p.Name + "." + f.Name.Name
