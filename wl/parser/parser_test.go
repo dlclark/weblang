@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"weblang/wl/ast"
@@ -16,6 +15,10 @@ var validFiles = []string{
 	"error_test.go",
 	"short_test.go",
 }
+
+/* These tests just parse the local files for Go
+
+We should use testdata\*.wl files for this
 
 func TestParse(t *testing.T) {
 	for _, filename := range validFiles {
@@ -60,7 +63,7 @@ func TestParseDir(t *testing.T) {
 			t.Errorf("unexpected package file: %s", filename)
 		}
 	}
-}
+}*/
 
 func TestParseExpr(t *testing.T) {
 	// just kicking the tires:
@@ -76,7 +79,7 @@ func TestParseExpr(t *testing.T) {
 	}
 
 	// a valid type expression
-	src = "struct{x *int}"
+	src = "struct{x int}"
 	x, err = ParseExpr(src)
 	if err != nil {
 		t.Errorf("ParseExpr(%q): %v", src, err)
@@ -224,19 +227,19 @@ func f3a(a, b int, c float)
 func f4a(...complex)
 func f5a(a s1a, b ...complex)
 //
-func f1b(*int)
-func f2b([]byte, (int), *float)
-func f3b(a, b *int, c []float)
-func f4b(...*complex)
+func f1b(int)
+func f2b([]byte, (int), float)
+func f3b(a, b int, c []float)
+func f4b(...complex)
 func f5b(a s1a, b ...[]complex)
 //
 type s1a struct { int }
 type s2a struct { byte; int; s1a }
 type s3a struct { a, b int; c float }
 //
-type s1b struct { *int }
-type s2b struct { byte; int; *float }
-type s3b struct { a, b *s3b; c []float }
+type s1b struct { int }
+type s2b struct { byte; int; float }
+type s3b struct { a, b s3b; c []float }
 `, 0)
 	if err != nil {
 		t.Fatal(err)

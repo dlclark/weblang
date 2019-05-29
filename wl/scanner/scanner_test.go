@@ -809,6 +809,65 @@ func TestIssue28112(t *testing.T) {
 	}
 }
 
+func TestInterfaceToken(t *testing.T) {
+	var s Scanner
+	src := `package p; func _(x interface{f()}) { interface{f()}(x).f() }`
+	file := fset.AddFile("interfaceTest", fset.Base(), len(src))
+	s.Init(file, []byte(src), func(pos token.Position, msg string) { t.Error(Error{pos, msg}) }, 0)
+	
+	want := []struct {
+		 t token.Token
+		 lit string
+	} {
+		{ t:token.PACKAGE, lit:"package" }, //0
+		{ t:token.IDENT, lit:"p" },
+		{ t:token.SEMICOLON, lit:";" },
+		{ t:token.FUNC, lit:"func" },
+		{ t:token.IDENT, lit:"_" },
+		{ t:token.LPAREN, lit:"" },
+		{ t:token.IDENT, lit:"x" },
+		{ t:token.INTERFACE, lit:"interface" },
+		{ t:token.LBRACE, lit:"" }, //8
+		{ t:token.IDENT, lit:"f" },
+		{ t:token.LPAREN, lit:"" },
+		{ t:token.RPAREN, lit:"" },
+		{ t:token.RBRACE, lit:"" },
+		{ t:token.RPAREN, lit:"" }, //13 - end func def 
+		{ t:token.LBRACE, lit:"" }, // func body
+		{ t:token.INTERFACE, lit:"interface" },
+		{ t:token.LBRACE, lit:"" }, 
+		{ t:token.IDENT, lit:"f" },
+		{ t:token.LPAREN, lit:"" },
+		{ t:token.RPAREN, lit:"" },
+		{ t:token.RBRACE, lit:"" }, //20
+		{ t:token.LPAREN, lit:"" },
+		{ t:token.IDENT, lit:"x" },
+		{ t:token.RPAREN, lit:"" },
+		{ t:token.PERIOD, lit:"" },
+		{ t:token.IDENT, lit:"f" }, //25
+		{ t:token.LPAREN, lit:"" },
+		{ t:token.RPAREN, lit:"" },
+		{ t:token.RBRACE, lit:"" },
+		{ t:token.SEMICOLON, lit:"\n" },
+	}
+	//(pos token.Pos, tok token.Token, lit string)
+	for i:=0;i < len(want);i++ {
+		_, tok, lit := s.Scan()
+
+		if tok != want[i].t {
+			t.Fatalf("Wanted token %v but got %v at index %v", want[i].t, tok, i)
+		}
+		if lit != want[i].lit {
+			t.Fatalf("Wanted literal %v but got %v at index %v", want[i].lit, lit, i)
+		}
+	}
+	if _, tok, _ := s.Scan(); tok != token.EOF {
+		t.Fatalf("had tokens after expected set: %v", tok)
+	}
+
+
+}
+
 func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
 	fset := token.NewFileSet()

@@ -1769,6 +1769,29 @@ func (p *parser) parseDeferStmt() ast.Stmt {
 	return &ast.DeferStmt{Defer: pos, Call: call}
 }*/
 
+func (p *parser) parseCatchStmt() *ast.CatchStmt {
+	if p.trace {
+		defer un(trace(p, "CatchStmt"))
+	}
+
+	pos := p.pos
+	p.expect(token.CATCH)
+
+	// check if we start with "func" or just an ident
+	var fun ast.Expr
+	if p.tok == token.FUNC {
+		fun = p.parseFuncTypeOrLit()
+	} else {
+		// parse the ident function
+		// could be a.b("something").c(1-2).d
+		fun = p.parseRhs()
+	}
+
+	p.expectSemi()
+
+	return &ast.CatchStmt{Catch: pos, Fun: fun}
+}
+
 func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 	if p.trace {
 		defer un(trace(p, "ReturnStmt"))
@@ -2207,7 +2230,7 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 	case
 		// tokens that may start an expression
 		token.IDENT, token.INT, token.FLOAT, token.TEMPLATE, token.STRING, token.FUNC, token.LPAREN, // operands
-		token.LBRACK, token.STRUCT, // composite types
+		token.LBRACK, token.STRUCT, token.INTERFACE, token.ENUM, token.UNION, // composite types
 		token.ADD, token.SUB, token.MUL: // unary operators
 		s, _ = p.parseSimpleStmt(labelOk)
 		// because of the required look-ahead, labeled statements are
@@ -2235,6 +2258,8 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 	//	s = p.parseSelectStmt()
 	case token.FOR:
 		s = p.parseForStmt()
+	case token.CATCH:
+		s = p.parseCatchStmt()
 	case token.SEMICOLON:
 		// Is it ever possible to have an implicit semicolon
 		// producing an empty statement in a valid program?
@@ -2287,7 +2312,7 @@ func (p *parser) parseImportSpec(doc *ast.CommentGroup, _ token.Token, _ int) as
 
 	pos := p.pos
 	var path string
-	if p.tok == token.STRING {
+	if p.tok == token.STRING || p.tok == token.TEMPLATE {
 		path = p.lit
 		if !isValidImport(path) {
 			p.error(pos, "invalid import path: "+path)

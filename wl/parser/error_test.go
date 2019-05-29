@@ -176,7 +176,7 @@ func TestErrors(t *testing.T) {
 	}
 	for _, fi := range list {
 		name := fi.Name()
-		if !fi.IsDir() && !strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".src") {
+		if !fi.IsDir() && !strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".wl") {
 			checkErrors(t, filepath.Join(testdata, name), nil)
 		}
 	}

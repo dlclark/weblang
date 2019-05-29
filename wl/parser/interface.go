@@ -142,7 +142,7 @@ func ParseDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, m
 
 	pkgs = make(map[string]*ast.Package)
 	for _, d := range list {
-		if strings.HasSuffix(d.Name(), ".go") && (filter == nil || filter(d)) {
+		if strings.HasSuffix(d.Name(), ".wl") && (filter == nil || filter(d)) {
 			filename := filepath.Join(path, d.Name())
 			if src, err := ParseFile(fset, filename, nil, mode); err == nil {
 				name := src.Name.Name
