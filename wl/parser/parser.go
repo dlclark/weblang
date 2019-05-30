@@ -1414,9 +1414,7 @@ func (p *parser) parseOperand(lhs bool) ast.Expr {
 		p.next()
 		return x
 	case token.TEMPLATE:
-		x := p.parseTemplateLit(p.lit)
-		p.next()
-		return x
+		return p.parseTemplateLit()
 	case token.LPAREN:
 		lparen := p.pos
 		p.next()
@@ -1447,22 +1445,76 @@ func (p *parser) parseOperand(lhs bool) ast.Expr {
 	return &ast.BadExpr{From: pos, To: p.pos}
 }
 
-// could return a ast.TemplateExprLit or BasicLit
-// depending on if the string has templated expressions in it
-func (p *parser) parseTemplateLit(raw string) ast.Expr {
-	return &ast.BasicLit{
-		ValuePos: p.pos,
-		Value:    raw,
-		Kind:     token.TEMPLATE,
-	}
-	//x := &ast.TemplateExprLit{ValuePos: p.pos, Raw: raw}
-
+func (p *parser) parseTemplateLit() ast.Expr {
+	//found a `
 	// now we need to split the raw string into bits based on
 	// expressions and string parts
 	// `string part ${expr:+v} another string part`
-	// make a new template parser
 
-	//return x
+	pos := p.pos
+
+	var list []ast.Expr
+
+	hasExpr := false
+	for p.tok != token.EOF {
+		// skip next helpers so we can use different rules to scan
+		p.pos, p.tok, p.lit = p.scanner.ScanTemplateString()
+
+		if p.tok == token.STRING {
+			// raw string
+			list = append(list, &ast.BasicLit{
+				ValuePos: p.pos,
+				Kind:     p.tok,
+				Value:    p.lit,
+			})
+		} else if p.tok == token.TEMPLATEEXPR {
+			// we need to switch to parse an expression
+			p.next()
+			exp := p.parseRhs()
+			if exp != nil {
+				hasExpr = true
+				list = append(list, exp)
+			}
+			p.expect(token.RBRACE)
+		} else if p.tok == token.TEMPLATE {
+			// we're done, back to normal
+			p.next()
+			break
+		} else {
+			// shouldn't happen...
+			// we have an error
+			p.errorExpected(p.pos, "template string")
+			p.advance(stmtStart)
+			return &ast.BadExpr{From: pos, To: p.pos}
+		}
+	}
+	if !hasExpr {
+		// concat all our literal items together
+		sb := strings.Builder{}
+		sb.WriteRune('"')
+		for _, exp := range list {
+			sb.WriteString(exp.(*ast.BasicLit).Value)
+		}
+		sb.WriteRune('"')
+
+		return &ast.BasicLit{
+			ValuePos: pos,
+			Kind:     token.TEMPLATE,
+			Value:    sb.String(),
+		}
+	}
+
+	// wrap all our literal values with ""
+	for _, exp := range list {
+		if b, ok := exp.(*ast.BasicLit); ok {
+			b.Value = `"` + b.Value + `"`
+		}
+	}
+
+	return &ast.TemplateExprLit{
+		ValuePos: pos,
+		Parts:    list,
+	}
 }
 
 func (p *parser) parseSelector(x ast.Expr) ast.Expr {
@@ -2654,12 +2706,27 @@ func (p *parser) parseImportSpec(doc *ast.CommentGroup, _ token.Token, _ int) as
 
 	pos := p.pos
 	var path string
-	if p.tok == token.STRING || p.tok == token.TEMPLATE {
+	if p.tok == token.STRING {
 		path = p.lit
 		if !isValidImport(path) {
 			p.error(pos, "invalid import path: "+path)
 		}
 		p.next()
+	} else if p.tok == token.TEMPLATE {
+		lit := p.parseTemplateLit()
+		if b, ok := lit.(*ast.BasicLit); ok {
+			path = b.Value
+			if !isValidImport(path) {
+				p.error(pos, "invalid import path: "+path)
+			}
+		} else {
+			temExp := lit.(*ast.TemplateExprLit)
+
+			st := p.file.Offset(temExp.Pos())
+			en := p.file.Offset(temExp.End())
+			path = string(p.scanner.Src()[st:en])
+			p.error(pos, "invalid token template in import path: "+path)
+		}
 	} else {
 		p.expect(token.STRING) // use expect() error handling
 	}

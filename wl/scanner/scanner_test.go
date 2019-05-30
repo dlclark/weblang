@@ -68,15 +68,15 @@ var tokens = [...]elt{
 	{token.STRING, `"fo\nobar"`, literal},
 	{token.STRING, `"foo bar"`, literal},
 	{token.STRING, `"foo \" bar"`, literal},
-	{token.TEMPLATE, "`foobar`", literal},
-	{token.TEMPLATE, "`" + `foo
-	                        bar` +
-		"`",
-		literal,
-	},
-	{token.TEMPLATE, "`\r`", literal},
-	{token.TEMPLATE, "`foo\r\nbar`", literal},
-
+	/*	{token.TEMPLATE, "`foobar`", literal},
+		{token.TEMPLATE, "`" + `foo
+		                        bar` +
+			"`",
+			literal,
+		},
+		{token.TEMPLATE, "`\r`", literal},
+		{token.TEMPLATE, "`foo\r\nbar`", literal},
+	*/
 	// Operators and delimiters
 	{token.ADD, "+", operator},
 	{token.SUB, "-", operator},
@@ -395,6 +395,7 @@ var lines = []string{
 	"{\n",
 	",\n",
 	".\n",
+	//"${\n", // not a regular token, tested with template literals
 
 	")$\n",
 	"]$\n",
@@ -729,8 +730,8 @@ var errors = []struct {
 	{`"abc`, token.STRING, 0, `"abc`, "string literal not terminated"},
 	{"\"abc\n", token.STRING, 0, `"abc`, "string literal not terminated"},
 	{"\"abc\n   ", token.STRING, 0, `"abc`, "string literal not terminated"},
-	{"``", token.TEMPLATE, 0, "``", ""},
-	{"`", token.TEMPLATE, 0, "`", "string template not terminated"},
+	//	{"``", token.TEMPLATE, 0, "``", ""},
+	//	{"`", token.TEMPLATE, 0, "`", "string template not terminated"},
 	{"/**/", token.COMMENT, 0, "/**/", ""},
 	{"/*", token.COMMENT, 0, "/*", "comment not terminated"},
 	{"077", token.INT, 0, "077", ""},
@@ -812,44 +813,44 @@ func TestInterfaceToken(t *testing.T) {
 	src := `package p; func _(x interface{f()}) { interface{f()}(x).f() }`
 	file := fset.AddFile("interfaceTest", fset.Base(), len(src))
 	s.Init(file, []byte(src), func(pos token.Position, msg string) { t.Error(Error{pos, msg}) }, 0)
-	
+
 	want := []struct {
-		 t token.Token
-		 lit string
-	} {
-		{ t:token.PACKAGE, lit:"package" }, //0
-		{ t:token.IDENT, lit:"p" },
-		{ t:token.SEMICOLON, lit:";" },
-		{ t:token.FUNC, lit:"func" },
-		{ t:token.IDENT, lit:"_" },
-		{ t:token.LPAREN, lit:"" },
-		{ t:token.IDENT, lit:"x" },
-		{ t:token.INTERFACE, lit:"interface" },
-		{ t:token.LBRACE, lit:"" }, //8
-		{ t:token.IDENT, lit:"f" },
-		{ t:token.LPAREN, lit:"" },
-		{ t:token.RPAREN, lit:"" },
-		{ t:token.RBRACE, lit:"" },
-		{ t:token.RPAREN, lit:"" }, //13 - end func def 
-		{ t:token.LBRACE, lit:"" }, // func body
-		{ t:token.INTERFACE, lit:"interface" },
-		{ t:token.LBRACE, lit:"" }, 
-		{ t:token.IDENT, lit:"f" },
-		{ t:token.LPAREN, lit:"" },
-		{ t:token.RPAREN, lit:"" },
-		{ t:token.RBRACE, lit:"" }, //20
-		{ t:token.LPAREN, lit:"" },
-		{ t:token.IDENT, lit:"x" },
-		{ t:token.RPAREN, lit:"" },
-		{ t:token.PERIOD, lit:"" },
-		{ t:token.IDENT, lit:"f" }, //25
-		{ t:token.LPAREN, lit:"" },
-		{ t:token.RPAREN, lit:"" },
-		{ t:token.RBRACE, lit:"" },
-		{ t:token.SEMICOLON, lit:"\n" },
+		t   token.Token
+		lit string
+	}{
+		{t: token.PACKAGE, lit: "package"}, //0
+		{t: token.IDENT, lit: "p"},
+		{t: token.SEMICOLON, lit: ";"},
+		{t: token.FUNC, lit: "func"},
+		{t: token.IDENT, lit: "_"},
+		{t: token.LPAREN, lit: ""},
+		{t: token.IDENT, lit: "x"},
+		{t: token.INTERFACE, lit: "interface"},
+		{t: token.LBRACE, lit: ""}, //8
+		{t: token.IDENT, lit: "f"},
+		{t: token.LPAREN, lit: ""},
+		{t: token.RPAREN, lit: ""},
+		{t: token.RBRACE, lit: ""},
+		{t: token.RPAREN, lit: ""}, //13 - end func def
+		{t: token.LBRACE, lit: ""}, // func body
+		{t: token.INTERFACE, lit: "interface"},
+		{t: token.LBRACE, lit: ""},
+		{t: token.IDENT, lit: "f"},
+		{t: token.LPAREN, lit: ""},
+		{t: token.RPAREN, lit: ""},
+		{t: token.RBRACE, lit: ""}, //20
+		{t: token.LPAREN, lit: ""},
+		{t: token.IDENT, lit: "x"},
+		{t: token.RPAREN, lit: ""},
+		{t: token.PERIOD, lit: ""},
+		{t: token.IDENT, lit: "f"}, //25
+		{t: token.LPAREN, lit: ""},
+		{t: token.RPAREN, lit: ""},
+		{t: token.RBRACE, lit: ""},
+		{t: token.SEMICOLON, lit: "\n"},
 	}
 	//(pos token.Pos, tok token.Token, lit string)
-	for i:=0;i < len(want);i++ {
+	for i := 0; i < len(want); i++ {
 		_, tok, lit := s.Scan()
 
 		if tok != want[i].t {
@@ -862,7 +863,6 @@ func TestInterfaceToken(t *testing.T) {
 	if _, tok, _ := s.Scan(); tok != token.EOF {
 		t.Fatalf("had tokens after expected set: %v", tok)
 	}
-
 
 }
 

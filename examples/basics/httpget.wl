@@ -42,7 +42,9 @@ func SomeFunc(url string) {
     catch func(e error) {
         console.log(e)
     } 
-    catch e => { console.log(e) }
+    catch fn(e) console.Log(e)
+
+    todos.Filter(fn(t) t.isCompleted).Length()
 
     // http.Get() will retry on transient errors and throw if it fails to get a response from the server
     // after the specified timeout.
@@ -69,6 +71,17 @@ func SomeFunc(url string) {
         },
     }
     Covariant(d)
+
+    if f(<bool, int, string> 1, 3, 4) == "a" {
+
+    }
+}
+
+func f<K,V,T>(a,b,c int) T {
+    if K==V {
+
+    }
+    return new(T)
 }
 
 func Covariant<T>(in []blah<T>) T {

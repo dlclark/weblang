@@ -314,7 +314,6 @@ type (
 	// A TemplateExprLit node represents a parsed literal template value that has expressions.
 	TemplateExprLit struct {
 		ValuePos token.Pos // literal position
-		Raw      string    // raw original string value
 		Parts    []Expr    // parts parsed into sub-expressions, usually a combination of BasicLits and Idents
 	}
 

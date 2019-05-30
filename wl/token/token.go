@@ -56,11 +56,12 @@ const (
 	DEFINE   // :=
 	ELLIPSIS // ...
 
-	LPAREN // (
-	LBRACK // [
-	LBRACE // {
-	COMMA  // ,
-	PERIOD // .
+	LPAREN       // (
+	LBRACK       // [
+	LBRACE       // {
+	COMMA        // ,
+	PERIOD       // .
+	TEMPLATEEXPR // ${
 
 	RPAREN    // )
 	RBRACK    // ]
@@ -143,11 +144,12 @@ var tokens = [...]string{
 	DEFINE:   ":=",
 	ELLIPSIS: "...",
 
-	LPAREN: "(",
-	LBRACK: "[",
-	LBRACE: "{",
-	COMMA:  ",",
-	PERIOD: ".",
+	LPAREN:       "(",
+	LBRACK:       "[",
+	LBRACE:       "{",
+	COMMA:        ",",
+	PERIOD:       ".",
+	TEMPLATEEXPR: "${",
 
 	RPAREN:    ")",
 	RBRACK:    "]",
@@ -166,7 +168,7 @@ var tokens = [...]string{
 	FOR:         "for",
 
 	FUNC:   "func",
-	FN:   "fn",
+	FN:     "fn",
 	GOTO:   "goto",
 	IF:     "if",
 	IMPORT: "import",

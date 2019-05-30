@@ -733,7 +733,7 @@ scanAgain:
 		case '`':
 			insertSemi = true
 			tok = token.TEMPLATE
-			lit = s.scanRawString()
+			lit = "`" //s.scanRawString()
 		case ':':
 			tok = s.switch2(token.COLON, token.DEFINE)
 		case '.':
@@ -856,4 +856,65 @@ scanAgain:
 	}
 
 	return
+}
+
+// Src returns the original given source
+func (s *Scanner) Src() []byte {
+	return s.src
+}
+
+// ScanTemplateString will stop skipping whitespace
+// and scan the next tokens up until ${ OR ` as if they're a single STRING token
+// without any quotes
+func (s *Scanner) ScanTemplateString() (pos token.Pos, tok token.Token, lit string) {
+
+	// current token start of a string
+	offs := s.offset
+	pos = s.file.Pos(s.offset)
+
+	hasCR := false
+	for {
+		ch := s.ch
+		if ch < 0 {
+			s.error(offs, "string template not terminated")
+			tok = token.STRING
+			break
+		}
+		if ch == '`' {
+			tok = token.TEMPLATE
+			s.next() // keep moving
+			break
+		} else if s.peek() == '`' {
+			s.next()
+			// capture our final string now
+			tok = token.STRING
+			break
+		} else if ch == '$' && s.peek() == '{' {
+			if offs == s.offset {
+				// we didn't move, so we need to
+				// consume the expression start token
+				s.next() // eat the $
+				s.next() // eat the {
+				tok = token.TEMPLATEEXPR
+			} else {
+				tok = token.STRING
+			}
+
+			break
+		}
+
+		// make sure we keep moving ahead
+		s.next()
+		if ch == '\\' {
+			s.scanEscape('`')
+		} else if ch == '\r' {
+			hasCR = true
+		}
+	}
+
+	b := s.src[offs:s.offset]
+	if hasCR {
+		b = stripCR(b, false)
+	}
+	return pos, tok, string(b)
 }
