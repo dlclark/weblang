@@ -119,8 +119,6 @@ var tokens = [...]elt{
 	{token.SEMICOLON, ";", operator},
 	{token.COLON, ":", operator},
 
-	{token.RARROW, "=>", operator},
-
 	// Keywords
 	{token.BREAK, "break", keyword},
 	{token.CASE, "case", keyword},
@@ -133,6 +131,7 @@ var tokens = [...]elt{
 	{token.FOR, "for", keyword},
 
 	{token.FUNC, "func", keyword},
+	{token.FN, "fn", keyword},
 	{token.GOTO, "goto", keyword},
 	{token.IF, "if", keyword},
 	{token.IMPORT, "import", keyword},
@@ -381,7 +380,7 @@ var lines = []string{
 
 	"==\n",
 	"<\n",
-	">\n",
+	">$\n",
 	"=\n",
 	"!\n",
 
@@ -403,8 +402,6 @@ var lines = []string{
 	"#;\n",
 	":\n",
 
-	"=>\n",
-
 	"break$\n",
 	"case\n",
 	"const\n",
@@ -417,6 +414,7 @@ var lines = []string{
 	"for\n",
 
 	"func\n",
+	"fn\n",
 	//"go\n",
 	"goto\n",
 	"if\n",

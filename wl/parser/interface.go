@@ -54,7 +54,7 @@ const (
 	AllErrors         = SpuriousErrors             // report all errors (not just the first 10 on different lines)
 )
 
-// ParseFile parses the source code of a single Go source file and returns
+// ParseFile parses the source code of a single source file and returns
 // the corresponding ast.File node. The source code may be provided via
 // the filename of the source file, or via the src parameter.
 //
@@ -95,7 +95,7 @@ func ParseFile(fset *token.FileSet, filename string, src interface{}, mode Mode)
 
 		// set result values
 		if f == nil {
-			// source is not a valid Go source file - satisfy
+			// source is not a valid source file - satisfy
 			// ParseFile API and return a valid (but) empty
 			// *ast.File
 			f = &ast.File{
@@ -115,12 +115,12 @@ func ParseFile(fset *token.FileSet, filename string, src interface{}, mode Mode)
 	return
 }
 
-// ParseDir calls ParseFile for all files with names ending in ".go" in the
+// ParseDir calls ParseFile for all files with names ending in ".wl" in the
 // directory specified by path and returns a map of package name -> package
 // AST with all the packages found.
 //
 // If filter != nil, only the files with os.FileInfo entries passing through
-// the filter (and ending in ".go") are considered. The mode bits are passed
+// the filter (and ending in ".wl") are considered. The mode bits are passed
 // to ParseFile unchanged. Position information is recorded in fset, which
 // must not be nil.
 //
@@ -166,7 +166,7 @@ func ParseDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, m
 
 // ParseExprFrom is a convenience function for parsing an expression.
 // The arguments have the same meaning as for ParseFile, but the source must
-// be a valid Go (type or value) expression. Specifically, fset must not
+// be a valid (type or value) expression. Specifically, fset must not
 // be nil.
 //
 func ParseExprFrom(fset *token.FileSet, filename string, src interface{}, mode Mode) (ast.Expr, error) {

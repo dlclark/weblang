@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"weblang/wl/ast"
@@ -544,4 +545,535 @@ type x int // comment
 	if comment != "// comment" {
 		t.Errorf("got %q, want %q", comment, "// comment")
 	}
+}
+
+func TestCatchBasics(t *testing.T) {
+	const src = `package main
+	func f() {
+		catch func(e error) {
+			console.Log(e)
+		}
+		catch pkg.Test.SomeFunction(inp+1).Handler
+	}`
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	catch := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.CatchStmt)
+	if want, got := "3:3", fset.Position(catch.Pos()).String(); want != got {
+		t.Errorf("1 Pos() wanted %v got %v", want, got)
+	}
+	fun := catch.Fun.(*ast.FuncLit)
+	if want, got := len(fun.Body.List), 1; want != got {
+		t.Errorf("1 Fun Body Len, wanted %v, got %v", want, got)
+	}
+
+	catch = f.Decls[0].(*ast.FuncDecl).Body.List[1].(*ast.CatchStmt)
+
+	if want, got := "6:3", fset.Position(catch.Pos()).String(); want != got {
+		t.Errorf("2 Pos() wanted %v got %v", want, got)
+	}
+	fun2 := catch.Fun.(*ast.SelectorExpr)
+	if want, got := fun2.Sel.Name, "Handler"; want != got {
+		t.Errorf("2 Fun Body Len, wanted %v, got %v", want, got)
+	}
+}
+
+func TestUnionSwitchBasic(t *testing.T) {
+	const src = `package main
+	func f() {
+		switch v := val.(union) {
+		case T:
+			v.SomeT()
+		case S:
+			v.SomeS()
+		default:
+			// v?
+		}
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	union := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.UnionSwitchStmt)
+	if want, got := "3:3", fset.Position(union.Pos()).String(); want != got {
+		t.Errorf("Pos() wanted %v got %v", want, got)
+	}
+	if want, got := ast.SpecialTypeAssertUnion, union.Assign.(*ast.AssignStmt).Rhs[0].(*ast.TypeAssertExpr).Special; want != got {
+		t.Errorf("Special wanted %v got %v", want, got)
+	}
+	if want, got := ast.SpecialTypeAssertUnion, union.Assign.(*ast.AssignStmt).Rhs[0].(*ast.TypeAssertExpr).Special; want != got {
+		t.Errorf("Special wanted %v got %v", want, got)
+	}
+	if want, got := 3, len(union.Body.List); want != got {
+		t.Errorf("Case statement count, wanted %v, got %v", want, got)
+	}
+	if want, got := 1, len(union.Body.List[0].(*ast.CaseClause).Body); want != got {
+		t.Errorf("Case 1 statement count, wanted %v, got %v", want, got)
+	}
+	if want, got := "T", union.Body.List[0].(*ast.CaseClause).List[0].(*ast.Ident).Name; want != got {
+		t.Errorf("Case 1 statement count, wanted %v, got %v", want, got)
+	}
+	if want, got := 1, len(union.Body.List[1].(*ast.CaseClause).Body); want != got {
+		t.Errorf("Case 2 statement count, wanted %v, got %v", want, got)
+	}
+	if want, got := "S", union.Body.List[1].(*ast.CaseClause).List[0].(*ast.Ident).Name; want != got {
+		t.Errorf("Case 2 statement count, wanted %v, got %v", want, got)
+	}
+	if want, got := 0, len(union.Body.List[2].(*ast.CaseClause).Body); want != got {
+		t.Errorf("Case 2 body statement count, wanted %v, got %v", want, got)
+	}
+	if want, got := 0, len(union.Body.List[2].(*ast.CaseClause).List); want != got {
+		t.Errorf("Case 2 list item count, wanted %v, got %v", want, got)
+	}
+}
+
+func TestUnionTypeDefBasic(t *testing.T) {
+	const src = `package main
+	
+	type A union {
+		B int
+		C []union {
+			D struct { stuff string }
+			E float
+			F int
+		}
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	union := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.TypeSpec).Type.(*ast.UnionType)
+	if want, got := 2, len(union.SubTypes.List); want != got {
+		t.Errorf("number of subTypes, want %v got %v", want, got)
+	}
+	if want, got := "B", union.SubTypes.List[0].Names[0].Name; want != got {
+		t.Errorf("name of subType 1, want %v got %v", want, got)
+	}
+	if want, got := "int", union.SubTypes.List[0].Type.(*ast.Ident).Name; want != got {
+		t.Errorf("type of subType 1, want %v got %v", want, got)
+	}
+	if want, got := "C", union.SubTypes.List[1].Names[0].Name; want != got {
+		t.Errorf("name of subType 2, want %v got %v", want, got)
+	}
+	if want, got := 3, len(union.SubTypes.List[1].Type.(*ast.ArrayType).Elt.(*ast.UnionType).SubTypes.List); want != got {
+		t.Errorf("number of subTypes for subType 2, want %v got %v", want, got)
+	}
+}
+
+func TestLambdaBasic(t *testing.T) {
+	const src = `package main
+	
+	func f() {
+		l := fn(i) s.ret
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	fn := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.LambdaLit)
+	if want, got := 1, len(fn.Params.List); want != got {
+		t.Errorf("number of params, want %v got %v", want, got)
+	}
+	if want, got := "i", fn.Params.List[0].Names[0].Name; want != got {
+		t.Errorf("param name, want %v got %v", want, got)
+	}
+	if want, got := 1, len(fn.Body); want != got {
+		t.Errorf("body len, want %v got %v", want, got)
+	}
+	if want, got := "ret", fn.Body[0].(*ast.SelectorExpr).Sel.Name; want != got {
+		t.Errorf("body expr name, want %v got %v", want, got)
+	}
+}
+
+func TestLambdaMultiAssign(t *testing.T) {
+	const src = `package main
+	
+	func f() {
+		l := fn(i) s.ret, 1
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	asn := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+	if want, got := "l", asn.Lhs[0].(*ast.Ident).Name; want != got {
+		t.Errorf("assign lhs 1, want %v got %v", want, got)
+	}
+	fn := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.LambdaLit)
+	if want, got := 1, len(fn.Params.List); want != got {
+		t.Errorf("number of params, want %v got %v", want, got)
+	}
+	if want, got := "i", fn.Params.List[0].Names[0].Name; want != got {
+		t.Errorf("param name, want %v got %v", want, got)
+	}
+	if want, got := 1, len(fn.Body); want != got {
+		t.Errorf("body len, want %v got %v", want, got)
+	}
+	if want, got := "ret", fn.Body[0].(*ast.SelectorExpr).Sel.Name; want != got {
+		t.Errorf("body expr name, want %v got %v", want, got)
+	}
+
+	lit := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[1].(*ast.BasicLit)
+	if want, got := "1", lit.Value; want != got {
+		t.Errorf("assignment second rhs, want %v got %v", want, got)
+	}
+}
+
+func TestLambdaMultiReturn(t *testing.T) {
+	const src = `package main
+	
+	func f() {
+		l,r := fn(i) { 100, i, 50 },1
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	asn := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+	if want, got := "l", asn.Lhs[0].(*ast.Ident).Name; want != got {
+		t.Errorf("assign lhs 1, want %v got %v", want, got)
+	}
+	if want, got := "r", asn.Lhs[1].(*ast.Ident).Name; want != got {
+		t.Errorf("assign lhs 2, want %v got %v", want, got)
+	}
+
+	fn := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.LambdaLit)
+	if want, got := 1, len(fn.Params.List); want != got {
+		t.Fatalf("number of params, want %v got %v", want, got)
+	}
+	if want, got := "i", fn.Params.List[0].Names[0].Name; want != got {
+		t.Errorf("param name, want %v got %v", want, got)
+	}
+	if want, got := 3, len(fn.Body); want != got {
+		t.Fatalf("body len, want %v got %v", want, got)
+	}
+	if want, got := "100", fn.Body[0].(*ast.BasicLit).Value; want != got {
+		t.Errorf("body expr 1, want %v got %v", want, got)
+	}
+	if want, got := "i", fn.Body[1].(*ast.Ident).Name; want != got {
+		t.Errorf("body expr 2, want %v got %v", want, got)
+	}
+	if want, got := "50", fn.Body[2].(*ast.BasicLit).Value; want != got {
+		t.Errorf("body expr 3, want %v got %v", want, got)
+	}
+	lit := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[1].(*ast.BasicLit)
+	if want, got := "1", lit.Value; want != got {
+		t.Errorf("assignment second rhs, want %v got %v", want, got)
+	}
+}
+
+func TestParseEnumTypeBasic(t *testing.T) {
+	const src = `package main
+	
+	type e enum { a=1;b;c	}
+	type e enum { a,b,c=1,2,3	}
+	type e enum int { a=iota;b;c }`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	//enum1 - type e enum { a=1;b;c	}
+	enum := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.TypeSpec).Type.(*ast.EnumType)
+	if want, got := ast.Expr(nil), enum.Type; want != got {
+		t.Errorf("enum 1 type want %v got %v", want, got)
+	}
+	if want, got := 3, len(enum.Specs); want != got {
+		t.Errorf("enum 1 specs want %v got %v", want, got)
+	}
+	if want, got := "a", enum.Specs[0].(*ast.ValueSpec).Names[0].Name; want != got {
+		t.Errorf("enum 1 spec 1 name want %v got %v", want, got)
+	}
+	if want, got := "1", enum.Specs[0].(*ast.ValueSpec).Values[0].(*ast.BasicLit).Value; want != got {
+		t.Errorf("enum 1 spec 1 value want %v got %v", want, got)
+	}
+	if want, got := "b", enum.Specs[1].(*ast.ValueSpec).Names[0].Name; want != got {
+		t.Errorf("enum 1 spec 2 name want %v got %v", want, got)
+	}
+	if want, got := 0, len(enum.Specs[1].(*ast.ValueSpec).Values); want != got {
+		t.Errorf("enum 1 spec 2 value want %v got %v", want, got)
+	}
+
+	//enum2 - type e enum { a,b,c=1,2,3	}
+	enum = f.Decls[1].(*ast.GenDecl).Specs[0].(*ast.TypeSpec).Type.(*ast.EnumType)
+	if want, got := ast.Expr(nil), enum.Type; want != got {
+		t.Errorf("enum 2 type want %v got %v", want, got)
+	}
+	if want, got := 1, len(enum.Specs); want != got {
+		t.Errorf("enum 2 specs want %v got %v", want, got)
+	}
+	if want, got := "a", enum.Specs[0].(*ast.ValueSpec).Names[0].Name; want != got {
+		t.Errorf("enum 2 spec 1 name want %v got %v", want, got)
+	}
+	if want, got := "1", enum.Specs[0].(*ast.ValueSpec).Values[0].(*ast.BasicLit).Value; want != got {
+		t.Errorf("enum 2 spec 1 value want %v got %v", want, got)
+	}
+	if want, got := "b", enum.Specs[0].(*ast.ValueSpec).Names[1].Name; want != got {
+		t.Errorf("enum 2 spec 2 name want %v got %v", want, got)
+	}
+	if want, got := "2", enum.Specs[0].(*ast.ValueSpec).Values[1].(*ast.BasicLit).Value; want != got {
+		t.Errorf("enum 2 spec 2 value want %v got %v", want, got)
+	}
+
+	//enum3 - type e enum int { a=iota;b;c }
+	enum = f.Decls[2].(*ast.GenDecl).Specs[0].(*ast.TypeSpec).Type.(*ast.EnumType)
+	if want, got := "int", enum.Type.(*ast.Ident).Name; want != got {
+		t.Errorf("enum 3 type want %v got %v", want, got)
+	}
+	if want, got := 3, len(enum.Specs); want != got {
+		t.Errorf("enum 3 specs want %v got %v", want, got)
+	}
+	if want, got := "a", enum.Specs[0].(*ast.ValueSpec).Names[0].Name; want != got {
+		t.Errorf("enum 3 spec 1 name want %v got %v", want, got)
+	}
+	if want, got := "iota", enum.Specs[0].(*ast.ValueSpec).Values[0].(*ast.Ident).Name; want != got {
+		t.Errorf("enum 3 spec 1 value want %v got %v", want, got)
+	}
+	if want, got := "b", enum.Specs[1].(*ast.ValueSpec).Names[0].Name; want != got {
+		t.Errorf("enum 3 spec 2 name want %v got %v", want, got)
+	}
+	if want, got := 0, len(enum.Specs[1].(*ast.ValueSpec).Values); want != got {
+		t.Errorf("enum 3 spec 2 value want %v got %v", want, got)
+	}
+}
+
+func TestGenericTypeDefBasic(t *testing.T) {
+	const src = `package main
+	
+	type A struct<T,V io.Reader> {
+		B T
+		C string
+		D int
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	str := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.TypeSpec).Type.(*ast.StructType)
+	if want, got := 2, len(str.TypeParams.List); want != got {
+		t.Errorf("number of fields, want %v got %v", want, got)
+	}
+	if want, got := 3, len(str.Fields.List); want != got {
+		t.Errorf("number of fields, want %v got %v", want, got)
+	}
+
+	if want, got := "T", str.TypeParams.List[0].Names[0].Name; want != got {
+		t.Errorf("name of typeparam 1, want %v got %v", want, got)
+	}
+	if want, got := ast.Expr(nil), str.TypeParams.List[0].Type; want != got {
+		t.Errorf("type of typeparam 1, want %v got %v", want, got)
+	}
+	if want, got := "V", str.TypeParams.List[1].Names[0].Name; want != got {
+		t.Errorf("name of typeparam 2, want %v got %v", want, got)
+	}
+	if want, got := "Reader", str.TypeParams.List[1].Type.(*ast.SelectorExpr).Sel.Name; want != got {
+		t.Errorf("type of typeparam 2, want %v got %v", want, got)
+	}
+
+	if want, got := "B", str.Fields.List[0].Names[0].Name; want != got {
+		t.Errorf("name of field 1, want %v got %v", want, got)
+	}
+	if want, got := "T", str.Fields.List[0].Type.(*ast.Ident).Name; want != got {
+		t.Errorf("type of field 1, want %v got %v", want, got)
+	}
+
+	if want, got := "C", str.Fields.List[1].Names[0].Name; want != got {
+		t.Errorf("type of field 2, want %v got %v", want, got)
+	}
+	if want, got := "string", str.Fields.List[1].Type.(*ast.Ident).Name; want != got {
+		t.Errorf("type of field 2, want %v got %v", want, got)
+	}
+
+	if want, got := "D", str.Fields.List[2].Names[0].Name; want != got {
+		t.Errorf("type of field 3, want %v got %v", want, got)
+	}
+	if want, got := "int", str.Fields.List[2].Type.(*ast.Ident).Name; want != got {
+		t.Errorf("type of field 3, want %v got %v", want, got)
+	}
+}
+
+func TestGenericTypeUseBasic(t *testing.T) {
+	const src = `package main
+	
+	func f<T>(in List<T>) T { 
+		var a pkg.Test<int,pkg.Some<T>>
+	}
+	`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	fun := f.Decls[0].(*ast.FuncDecl)
+	if want, got := 1, len(fun.Type.TypeParams.List); want != got {
+		t.Errorf("func type param count, want %v got %v", want, got)
+	}
+	if want, got := 1, len(fun.Type.Params.List); want != got {
+		t.Errorf("func param count, want %v got %v", want, got)
+	}
+	if want, got := "in", fun.Type.Params.List[0].Names[0].Name; want != got {
+		t.Errorf("func param name, want %v got %v", want, got)
+	}
+
+	intype := fun.Type.Params.List[0].Type.(*ast.Ident)
+	if want, got := "List", intype.Name; want != got {
+		t.Errorf("func param type name, want %v got %v", want, got)
+	}
+	if want, got := 1, len(intype.TypeParams); want != got {
+		t.Errorf("func param type param count, want %v got %v", want, got)
+	}
+	if want, got := "T", intype.TypeParams[0].(*ast.Ident).Name; want != got {
+		t.Errorf("func param type param name, want %v got %v", want, got)
+	}
+
+	sel := fun.Body.List[0].(*ast.DeclStmt).Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(*ast.SelectorExpr)
+	if want, got := "pkg", sel.X.(*ast.Ident).Name; want != got {
+		t.Errorf("body type package name, want %v got %v", want, got)
+	}
+	if want, got := "Test", sel.Sel.Name; want != got {
+		t.Errorf("body type name, want %v got %v", want, got)
+	}
+	if want, got := 2, len(sel.Sel.TypeParams); want != got {
+		t.Errorf("body type param count, want %v got %v", want, got)
+	}
+	if want, got := "int", sel.Sel.TypeParams[0].(*ast.Ident).Name; want != got {
+		t.Errorf("body type param 1 type, want %v got %v", want, got)
+	}
+	if want, got := "Some", sel.Sel.TypeParams[1].(*ast.SelectorExpr).Sel.Name; want != got {
+		t.Errorf("body type param 2 type, want %v got %v", want, got)
+	}
+	if want, got := 1, len(sel.Sel.TypeParams[1].(*ast.SelectorExpr).Sel.TypeParams); want != got {
+		t.Errorf("body type param 2 subtype, want %v got %v", want, got)
+	}
+}
+
+func TestGenericTypeUseLiteral(t *testing.T) {
+	const src = `package main
+	
+	var b t<struct{sup int}>
+	`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	val := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.ValueSpec)
+	if want, got := "b", val.Names[0].Name; want != got {
+		t.Errorf("var1 name, want %v got %v", want, got)
+	}
+	if want, got := "t", val.Type.(*ast.Ident).Name; want != got {
+		t.Errorf("var1 type name, want %v got %v", want, got)
+	}
+
+	if want, got := 1, len(val.Type.(*ast.Ident).TypeParams); want != got {
+		t.Errorf("val1 type param count, want %v got %v", want, got)
+	}
+
+	if want, got := 1, len(val.Type.(*ast.Ident).TypeParams[0].(*ast.StructType).Fields.List); want != got {
+		t.Errorf("val1 type param struct field count, want %v got %v", want, got)
+	}
+}
+
+func TestGenericFuncUseBasic(t *testing.T) {
+	const src = `package main
+	
+	func main() {
+		f(<T<interface{blah int}>, int> in1, in2)
+	}
+	`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	call := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr)
+	if want, got := "f", call.Fun.(*ast.Ident).Name; want != got {
+		t.Errorf("func name, want %v got %v", want, got)
+	}
+	if want, got := 2, len(call.TypeParams); want != got {
+		t.Errorf("func type param count, want %v got %v", want, got)
+	}
+	if want, got := "T", call.TypeParams[0].(*ast.Ident).Name; want != got {
+		t.Errorf("func type param 1 name, want %v got %v", want, got)
+	}
+	if want, got := 1, len(call.TypeParams[0].(*ast.Ident).TypeParams); want != got {
+		t.Errorf("func type param 1 subtype count, want %v got %v", want, got)
+	}
+	if want, got := 1, call.TypeParams[0].(*ast.Ident).TypeParams[0].(*ast.InterfaceType).Fields.NumFields(); want != got {
+		t.Errorf("func type param 1, subparam 1 interface field count, want %v got %v", want, got)
+	}
+
 }

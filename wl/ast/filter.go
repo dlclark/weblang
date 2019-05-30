@@ -135,19 +135,6 @@ func filterExprList(list []Expr, filter Filter, export bool) []Expr {
 	return list[0:j]
 }
 
-func filterTypeParamsList(types *TypeParameterList, filter Filter, export bool) bool {
-	if types == nil {
-		return false
-	}
-	b := false
-	for _, t := range types.List {
-		if t.Constraint == nil || filterType(t.Constraint, filter, export) {
-			b = true
-		}
-	}
-	return b
-}
-
 func filterParamList(fields *FieldList, filter Filter, export bool) bool {
 	if fields == nil {
 		return false
@@ -170,32 +157,39 @@ func filterType(typ Expr, f Filter, export bool) bool {
 	case *ArrayType:
 		return filterType(t.Elt, f, export)
 	case *StructType:
-		b1 := filterTypeParamsList(t.TypeParams, f, export)
+		if filterFieldList(t.TypeParams, f, export) {
+			t.Incomplete = true
+		}
 		if filterFieldList(t.Fields, f, export) {
 			t.Incomplete = true
 		}
-		return len(t.Fields.List) > 0 || b1
+		return len(t.Fields.List) > 0 || (t.TypeParams != nil && len(t.TypeParams.List) > 0)
 	case *FuncType:
 		b1 := filterParamList(t.Params, f, export)
 		b2 := filterParamList(t.Results, f, export)
-		b3 := filterTypeParamsList(t.TypeParams, f, export)
+		b3 := filterFieldList(t.TypeParams, f, export)
+
 		return b1 || b2 || b3
 	case *InterfaceType:
-		b1 := filterTypeParamsList(t.TypeParams, f, export)
-		if filterFieldList(t.Methods, f, export) {
+		if filterFieldList(t.TypeParams, f, export) {
 			t.Incomplete = true
 		}
-		return len(t.Methods.List) > 0 || b1
+		if filterFieldList(t.Fields, f, export) {
+			t.Incomplete = true
+		}
+		return len(t.Fields.List) > 0 || (t.TypeParams != nil && len(t.TypeParams.List) > 0)
 	case *EnumType:
 		t.Specs = filterSpecList(t.Specs, f, export)
 		return len(t.Specs) > 0
 
 	case *UnionType:
-		b1 := filterTypeParamsList(t.TypeParams, f, export)
+		if filterFieldList(t.TypeParams, f, export) {
+			t.Incomplete = true
+		}
 		if filterFieldList(t.SubTypes, f, export) {
 			t.Incomplete = true
 		}
-		return len(t.SubTypes.List) > 0 || b1
+		return len(t.SubTypes.List) > 0 || (t.TypeParams != nil && len(t.TypeParams.List) > 0)
 
 		/*	case *MapType:
 				b1 := filterType(t.Key, f, export)

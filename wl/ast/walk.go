@@ -81,8 +81,14 @@ func Walk(v Visitor, node Node) {
 		}
 
 	// Expressions
-	case *BadExpr, *Ident, *BasicLit:
+	case *BadExpr, *BasicLit:
 		// nothing to do
+
+	case *TemplateExprLit:
+		walkExprList(v, n.Parts)
+
+	case *Ident:
+		walkExprList(v, n.TypeParams)
 
 	case *Ellipsis:
 		if n.Elt != nil {
@@ -95,7 +101,7 @@ func Walk(v Visitor, node Node) {
 
 	case *LambdaLit:
 		Walk(v, n.Params)
-		Walk(v, n.Body)
+		walkExprList(v, n.Body)
 
 	case *CompositeLit:
 		if n.Type != nil {
@@ -134,6 +140,7 @@ func Walk(v Visitor, node Node) {
 
 	case *CallExpr:
 		Walk(v, n.Fun)
+		walkExprList(v, n.TypeParams)
 		walkExprList(v, n.Args)
 
 	//case *StarExpr:
@@ -179,7 +186,7 @@ func Walk(v Visitor, node Node) {
 			Walk(v, n.TypeParams)
 		}
 
-		Walk(v, n.Methods)
+		Walk(v, n.Fields)
 
 	case *EnumType:
 		Walk(v, n.Type)

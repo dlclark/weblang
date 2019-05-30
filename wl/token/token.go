@@ -67,8 +67,6 @@ const (
 	RBRACE    // }
 	SEMICOLON // ;
 	COLON     // :
-
-	RARROW // =>
 	operator_end
 
 	keyword_beg
@@ -84,6 +82,7 @@ const (
 	FOR
 
 	FUNC
+	FN
 	GOTO
 	IF
 	IMPORT
@@ -156,8 +155,6 @@ var tokens = [...]string{
 	SEMICOLON: ";",
 	COLON:     ":",
 
-	RARROW: "=>",
-
 	BREAK:    "break",
 	CASE:     "case",
 	CONST:    "const",
@@ -169,6 +166,7 @@ var tokens = [...]string{
 	FOR:         "for",
 
 	FUNC:   "func",
+	FN:   "fn",
 	GOTO:   "goto",
 	IF:     "if",
 	IMPORT: "import",

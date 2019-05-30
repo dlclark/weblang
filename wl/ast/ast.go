@@ -222,6 +222,7 @@ func (f *FieldList) NumFields() int {
 	return n
 }
 
+/*
 // A TypeParameter represents a Generic type parameter and its
 // associated Interface constraint
 type TypeParameter struct {
@@ -269,7 +270,7 @@ func (t *TypeParameterList) End() token.Pos {
 		return t.List[n-1].End()
 	}
 	return token.NoPos
-}
+}*/
 
 // An expression is represented by a tree consisting of one
 // or more of the following concrete expression nodes.
@@ -288,6 +289,11 @@ type (
 		NamePos token.Pos // identifier position
 		Name    string    // identifier name
 		Obj     *Object   // denoted object; or nil
+
+		// maybe we need a new TypeIdent struct for these things?
+		Opening    token.Pos // open of type params
+		TypeParams []Expr    // type names of associated generic type params  ident<pkg.ident,ident,pkg.ident>
+		Closing    token.Pos // close of type params
 	}
 
 	// An Ellipsis node stands for the "..." type in a
@@ -305,6 +311,13 @@ type (
 		Value    string      // literal string; e.g. 42, 0x7f, 3.14, 1e-9, "foo" or `\m\n\o`
 	}
 
+	// A TemplateExprLit node represents a parsed literal template value that has expressions.
+	TemplateExprLit struct {
+		ValuePos token.Pos // literal position
+		Raw      string    // raw original string value
+		Parts    []Expr    // parts parsed into sub-expressions, usually a combination of BasicLits and Idents
+	}
+
 	// A FuncLit node represents a function literal.
 	FuncLit struct {
 		Type *FuncType  // function type
@@ -313,8 +326,11 @@ type (
 
 	// A LambdaLit node represents a lambda function literal.
 	LambdaLit struct {
+		Fn     token.Pos  // position of Fn
 		Params *FieldList // (incoming) parameters; non-nil
-		Body   *BlockStmt // lambda body
+		Lbrace token.Pos  // { or token.NoPos
+		Body   []Expr     // lambda body
+		Rbrace token.Pos  // } or token.NoPos
 	}
 
 	// A CompositeLit node represents a composite literal.
@@ -362,19 +378,23 @@ type (
 	// type assertion.
 	//
 	TypeAssertExpr struct {
-		X      Expr      // expression
-		Lparen token.Pos // position of "("
-		Type   Expr      // asserted type; nil means type switch X.(type)
-		Rparen token.Pos // position of ")"
+		X       Expr              // expression
+		Lparen  token.Pos         // position of "("
+		Type    Expr              // asserted type; nil means type switch X.(type)
+		Special SpecialTypeAssert // if Type is nil, special tells if it's a X.(type) or X.(union)
+		Rparen  token.Pos         // position of ")"
 	}
 
 	// A CallExpr node represents an expression followed by an argument list.
 	CallExpr struct {
-		Fun      Expr      // function expression
-		Lparen   token.Pos // position of "("
-		Args     []Expr    // function arguments; or nil
-		Ellipsis token.Pos // position of "..." (token.NoPos if there is no "...")
-		Rparen   token.Pos // position of ")"
+		Fun        Expr      // function expression
+		Lparen     token.Pos // position of "("
+		Opening    token.Pos // position of generic <
+		TypeParams []Expr    // list of types for generic function
+		Closing    token.Pos // position of generic >
+		Args       []Expr    // function arguments; or nil
+		Ellipsis   token.Pos // position of "..." (token.NoPos if there is no "...")
+		Rparen     token.Pos // position of ")"
 	}
 
 	// A StarExpr node represents an expression of the form "*" Expression.
@@ -422,6 +442,14 @@ const (
 	RECV
 )*/
 
+type SpecialTypeAssert int
+
+const (
+	SpecialTypeAssertNone SpecialTypeAssert = iota
+	SpecialTypeAssertType
+	SpecialTypeAssertUnion
+)
+
 // A type is represented by a tree consisting of one
 // or more of the following type-specific expression
 // nodes.
@@ -436,28 +464,28 @@ type (
 
 	// A StructType node represents a struct type.
 	StructType struct {
-		Struct     token.Pos          // position of "struct" keyword
-		TypeParams *TypeParameterList // list of generic fields used by the struct
-		Fields     *FieldList         // list of field declarations
-		Incomplete bool               // true if (source) fields are missing in the Fields list
+		Struct     token.Pos  // position of "struct" keyword
+		TypeParams *FieldList // list of generic fields used by the struct
+		Fields     *FieldList // list of field declarations
+		Incomplete bool       // true if (source) fields are missing in the Fields list
 	}
 
 	// Pointer types are represented via StarExpr nodes.
 
 	// A FuncType node represents a function type.
 	FuncType struct {
-		Func       token.Pos          // position of "func" keyword (token.NoPos if there is no "func")
-		TypeParams *TypeParameterList // list of generic fields used by the function
-		Params     *FieldList         // (incoming) parameters; non-nil
-		Results    *FieldList         // (outgoing) results; or nil
+		Func       token.Pos  // position of "func" keyword (token.NoPos if there is no "func")
+		TypeParams *FieldList // list of generic fields used by the function; or nil
+		Params     *FieldList // (incoming) parameters; non-nil
+		Results    *FieldList // (outgoing) results; or nil
 	}
 
 	// An InterfaceType node represents an interface type.
 	InterfaceType struct {
-		Interface  token.Pos          // position of "interface" keyword
-		TypeParams *TypeParameterList // list of generic fields used by the interface
-		Methods    *FieldList         // list of methods/fields
-		Incomplete bool               // true if (source) methods are missing in the Methods list
+		Interface  token.Pos  // position of "interface" keyword
+		TypeParams *FieldList // list of generic fields used by the interface
+		Fields     *FieldList // list of methods/fields
+		Incomplete bool       // true if (source) methods are missing in the Methods list
 	}
 
 	// An EnumType node represents an enum type.
@@ -472,10 +500,10 @@ type (
 
 	// A UnionType node represents a union type
 	UnionType struct {
-		Union      token.Pos          //position of the "union" keyword
-		TypeParams *TypeParameterList // list of generic fields used by the union
-		SubTypes   *FieldList         // list of "fields" that make up the union
-		Incomplete bool               // true if (source) types are missing in the  SubTypes list
+		Union      token.Pos  //position of the "union" keyword
+		TypeParams *FieldList // list of generic fields used by the union
+		SubTypes   *FieldList // list of "fields" that make up the union
+		Incomplete bool       // true if (source) types are missing in the  SubTypes list
 	}
 
 	// A MapType node represents a map type.
@@ -496,12 +524,13 @@ type (
 
 // Pos and End implementations for expression/type nodes.
 
-func (x *BadExpr) Pos() token.Pos   { return x.From }
-func (x *Ident) Pos() token.Pos     { return x.NamePos }
-func (x *Ellipsis) Pos() token.Pos  { return x.Ellipsis }
-func (x *BasicLit) Pos() token.Pos  { return x.ValuePos }
-func (x *FuncLit) Pos() token.Pos   { return x.Type.Pos() }
-func (x *LambdaLit) Pos() token.Pos { return x.Params.Pos() }
+func (x *BadExpr) Pos() token.Pos         { return x.From }
+func (x *Ident) Pos() token.Pos           { return x.NamePos }
+func (x *Ellipsis) Pos() token.Pos        { return x.Ellipsis }
+func (x *BasicLit) Pos() token.Pos        { return x.ValuePos }
+func (x *TemplateExprLit) Pos() token.Pos { return x.ValuePos }
+func (x *FuncLit) Pos() token.Pos         { return x.Type.Pos() }
+func (x *LambdaLit) Pos() token.Pos       { return x.Fn }
 func (x *CompositeLit) Pos() token.Pos {
 	if x.Type != nil {
 		return x.Type.Pos()
@@ -542,9 +571,22 @@ func (x *Ellipsis) End() token.Pos {
 	}
 	return x.Ellipsis + 3 // len("...")
 }
-func (x *BasicLit) End() token.Pos       { return token.Pos(int(x.ValuePos) + len(x.Value)) }
-func (x *FuncLit) End() token.Pos        { return x.Body.End() }
-func (x *LambdaLit) End() token.Pos      { return x.Body.End() }
+func (x *BasicLit) End() token.Pos        { return token.Pos(int(x.ValuePos) + len(x.Value)) }
+func (x *TemplateExprLit) End() token.Pos { return x.Parts[len(x.Parts)-1].End() }
+func (x *FuncLit) End() token.Pos         { return x.Body.End() }
+func (x *LambdaLit) End() token.Pos {
+	if x.Rbrace != token.NoPos {
+		return x.Rbrace
+	}
+	if len(x.Body) > 0 {
+		return x.Body[len(x.Body)-1].End()
+	}
+	// invalid but whatever (no Rbrace)
+	if x.Lbrace != token.NoPos {
+		return x.Lbrace
+	}
+	return x.Params.End()
+}
 func (x *CompositeLit) End() token.Pos   { return x.Rbrace + 1 }
 func (x *ParenExpr) End() token.Pos      { return x.Rparen + 1 }
 func (x *SelectorExpr) End() token.Pos   { return x.Sel.End() }
@@ -567,7 +609,7 @@ func (x *FuncType) End() token.Pos {
 	}
 	return x.Params.End()
 }
-func (x *InterfaceType) End() token.Pos { return x.Methods.End() }
+func (x *InterfaceType) End() token.Pos { return x.Fields.End() }
 func (x *EnumType) End() token.Pos      { return x.Closing }
 func (x *UnionType) End() token.Pos     { return x.SubTypes.End() }
 
@@ -577,19 +619,20 @@ func (x *UnionType) End() token.Pos     { return x.SubTypes.End() }
 // exprNode() ensures that only expression/type nodes can be
 // assigned to an Expr.
 //
-func (*BadExpr) exprNode()        {}
-func (*Ident) exprNode()          {}
-func (*Ellipsis) exprNode()       {}
-func (*BasicLit) exprNode()       {}
-func (*FuncLit) exprNode()        {}
-func (*LambdaLit) exprNode()      {}
-func (*CompositeLit) exprNode()   {}
-func (*ParenExpr) exprNode()      {}
-func (*SelectorExpr) exprNode()   {}
-func (*IndexExpr) exprNode()      {}
-func (*SliceExpr) exprNode()      {}
-func (*TypeAssertExpr) exprNode() {}
-func (*CallExpr) exprNode()       {}
+func (*BadExpr) exprNode()         {}
+func (*Ident) exprNode()           {}
+func (*Ellipsis) exprNode()        {}
+func (*BasicLit) exprNode()        {}
+func (*TemplateExprLit) exprNode() {}
+func (*FuncLit) exprNode()         {}
+func (*LambdaLit) exprNode()       {}
+func (*CompositeLit) exprNode()    {}
+func (*ParenExpr) exprNode()       {}
+func (*SelectorExpr) exprNode()    {}
+func (*IndexExpr) exprNode()       {}
+func (*SliceExpr) exprNode()       {}
+func (*TypeAssertExpr) exprNode()  {}
+func (*CallExpr) exprNode()        {}
 
 //func (*StarExpr) exprNode()       {}
 func (*UnaryExpr) exprNode()    {}
@@ -612,7 +655,9 @@ func (*UnionType) exprNode()     {}
 // NewIdent creates a new Ident without position.
 // Useful for ASTs generated by code other than the parser.
 //
-func NewIdent(name string) *Ident { return &Ident{token.NoPos, name, nil} }
+func NewIdent(name string) *Ident {
+	return &Ident{token.NoPos, name, nil, token.NoPos, nil, token.NoPos}
+}
 
 // IsExported reports whether name is an exported symbol
 // (that is, whether it begins with an upper-case letter).

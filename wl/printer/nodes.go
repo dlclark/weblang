@@ -382,7 +382,10 @@ func (p *printer) parameters(fields *ast.FieldList) {
 	p.print(fields.Closing, token.RPAREN)
 }
 
-func (p *printer) signature(params, result *ast.FieldList) {
+func (p *printer) signature(typeParams, params, result *ast.FieldList) {
+	if typeParams != nil {
+		p.typeParamList(typeParams, false)
+	}
 	if params != nil {
 		p.parameters(params)
 	} else {
@@ -436,6 +439,42 @@ func (p *printer) setLineComment(text string) {
 	p.setComment(&ast.CommentGroup{List: []*ast.Comment{{Slash: token.NoPos, Text: text}}})
 }
 
+func (p *printer) typeParamList(fields *ast.FieldList, isIncomplete bool) {
+
+	if fields == nil || len(fields.List) == 0 {
+		//noop
+		return
+	}
+
+	lbrace := fields.Opening
+	list := fields.List
+	rbrace := fields.Closing
+	//hasComments := isIncomplete || p.commentBefore(p.posFor(rbrace))
+	//srcIsOneLine := lbrace.IsValid() && rbrace.IsValid() && p.lineFor(lbrace) == p.lineFor(rbrace)
+
+	// print on 1 line,
+	// TODO: better support for comments and long lines
+	p.print(lbrace, token.LSS, blank)
+
+	for i, f := range list {
+		if i > 0 {
+			p.print(token.COMMA, blank)
+		}
+
+		if len(f.Names) > 0 {
+			p.expr(f.Names[0])
+			p.print(blank)
+		}
+
+		if f.Type != nil {
+			//restrictions
+			p.expr(f.Type)
+		}
+	}
+
+	p.print(rbrace, token.GTR, blank)
+}
+
 func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) {
 	lbrace := fields.Opening
 	list := fields.List
@@ -470,7 +509,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) 
 				if ftyp, isFtyp := f.Type.(*ast.FuncType); isFtyp {
 					// method
 					p.expr(f.Names[0])
-					p.signature(ftyp.Params, ftyp.Results)
+					p.signature(ftyp.TypeParams, ftyp.Params, ftyp.Results)
 				} else {
 					// embedded interface
 					p.expr(f.Type)
@@ -547,7 +586,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) 
 			if ftyp, isFtyp := f.Type.(*ast.FuncType); isFtyp {
 				// method
 				p.expr(f.Names[0])
-				p.signature(ftyp.Params, ftyp.Results)
+				p.signature(ftyp.TypeParams, ftyp.Params, ftyp.Results)
 			} else {
 				// embedded interface
 				p.expr(f.Type)
@@ -935,15 +974,19 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 
 	case *ast.StructType:
 		p.print(token.STRUCT)
+		p.typeParamList(x.TypeParams, x.Incomplete)
 		p.fieldList(x.Fields, true, x.Incomplete)
 
 	case *ast.FuncType:
 		p.print(token.FUNC)
-		p.signature(x.Params, x.Results)
+		p.signature(x.TypeParams, x.Params, x.Results)
 
 	case *ast.InterfaceType:
 		p.print(token.INTERFACE)
-		p.fieldList(x.Methods, false, x.Incomplete)
+		p.typeParamList(x.TypeParams, x.Incomplete)
+		p.fieldList(x.Fields, false, x.Incomplete)
+
+		//TODO:wl add new types to printer
 
 	/*case *ast.MapType:
 		p.print(token.MAP, token.LBRACK)
@@ -1226,6 +1269,13 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool) {
 		p.print(token.DEFER, blank)
 		p.expr(s.Call)
 	*/
+	case *ast.CatchStmt:
+		p.print(token.CATCH)
+		if s.Fun != nil {
+			p.print(blank)
+			p.expr(s.Fun)
+		}
+
 	case *ast.ReturnStmt:
 		p.print(token.RETURN)
 		if s.Results != nil {
@@ -1707,7 +1757,7 @@ func (p *printer) funcDecl(d *ast.FuncDecl) {
 		p.print(blank)
 	}
 	p.expr(d.Name)
-	p.signature(d.Type.Params, d.Type.Results)
+	p.signature(d.Type.TypeParams, d.Type.Params, d.Type.Results)
 	p.funcBody(p.distanceFrom(d.Pos()), vtab, d.Body)
 }
 
