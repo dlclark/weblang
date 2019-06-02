@@ -50,6 +50,7 @@ var valids = []string{
 	`package p; func f() { catch func(e error) { } }`,
 	`package p; func f() { catch a.b().c(3-1).someFunc }`,
 	`package p; type a interface { f() }`,
+	"package p; func _() { x := `a ${test} here` }",
 }
 
 func TestValid(t *testing.T) {

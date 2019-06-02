@@ -832,6 +832,27 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 	case *ast.BasicLit:
 		p.print(x)
 
+	case *ast.TemplateExprLit:
+		p.print("`")
+		for _, r := range x.Parts {
+			if b, ok := r.(*ast.BasicLit); ok {
+				p.print(b)
+			} else {
+				// if our token is just a lit then we
+				// just wrap it tightly in ${}
+				// otherwise use space to spread it out
+				p.print(token.TEMPLATEEXPR)
+				sp := blank
+				if _, ok := r.(*ast.Ident); ok {
+					sp = ignore
+				}
+				p.print(sp)
+				p.expr(r)
+				p.print(sp, token.RBRACE)
+			}
+		}
+		p.print("`")
+
 	case *ast.FuncLit:
 		p.expr(x.Type)
 		p.funcBody(p.distanceFrom(x.Type.Pos()), blank, x.Body)

@@ -1475,7 +1475,11 @@ func (p *parser) parseTemplateLit() ast.Expr {
 				hasExpr = true
 				list = append(list, exp)
 			}
-			p.expect(token.RBRACE)
+			// can't use "export" or "next" here
+			// because we have to scan with template rules again
+			if p.tok != token.RBRACE {
+				p.errorExpected(pos, "'"+token.RBRACE.String()+"'")
+			}
 		} else if p.tok == token.TEMPLATE {
 			// we're done, back to normal
 			p.next()
@@ -1491,11 +1495,11 @@ func (p *parser) parseTemplateLit() ast.Expr {
 	if !hasExpr {
 		// concat all our literal items together
 		sb := strings.Builder{}
-		sb.WriteRune('"')
+		sb.WriteRune('`')
 		for _, exp := range list {
 			sb.WriteString(exp.(*ast.BasicLit).Value)
 		}
-		sb.WriteRune('"')
+		sb.WriteRune('`')
 
 		return &ast.BasicLit{
 			ValuePos: pos,
@@ -1505,11 +1509,11 @@ func (p *parser) parseTemplateLit() ast.Expr {
 	}
 
 	// wrap all our literal values with ""
-	for _, exp := range list {
+	/*for _, exp := range list {
 		if b, ok := exp.(*ast.BasicLit); ok {
 			b.Value = `"` + b.Value + `"`
 		}
-	}
+	}*/
 
 	return &ast.TemplateExprLit{
 		ValuePos: pos,
@@ -1734,6 +1738,7 @@ func (p *parser) checkExpr(x ast.Expr) ast.Expr {
 	case *ast.BadExpr:
 	case *ast.Ident:
 	case *ast.BasicLit:
+	case *ast.TemplateExprLit:
 	case *ast.FuncLit:
 	case *ast.LambdaLit:
 	case *ast.CompositeLit:

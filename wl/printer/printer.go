@@ -273,7 +273,7 @@ func (p *printer) writeByte(ch byte, n int) {
 // and p.last. If isLit is set, s is escaped w/ tabwriter.Escape characters
 // to protect s from being interpreted by the tabwriter.
 //
-// Note: writeString is only used to write Go tokens, literals, and
+// Note: writeString is only used to write tokens, literals, and
 // comments, all of which must be written literally. Thus, it is correct
 // to always set isLit = true. However, setting it explicitly only when
 // needed (i.e., when we don't know that s contains no tabs or line breaks)
@@ -298,7 +298,7 @@ func (p *printer) writeString(pos token.Position, s string, isLit bool) {
 
 	if isLit {
 		// Protect s such that is passes through the tabwriter
-		// unchanged. Note that valid Go programs cannot contain
+		// unchanged. Note that valid programs cannot contain
 		// tabwriter.Escape bytes since they do not appear in legal
 		// UTF-8 sequences.
 		p.output = append(p.output, tabwriter.Escape)
@@ -976,7 +976,7 @@ func (p *printer) print(args ...interface{}) {
 
 		default:
 			fmt.Fprintf(os.Stderr, "print: unsupported argument %v (%T)\n", arg, arg)
-			panic("go/printer type")
+			panic("weblang/wl/printer type")
 		}
 		// data != ""
 
@@ -1355,8 +1355,8 @@ func (cfg *Config) Fprint(output io.Writer, fset *token.FileSet, node interface{
 
 // Fprint "pretty-prints" an AST node to output.
 // It calls Config.Fprint with default settings.
-// Note that gofmt uses tabs for indentation but spaces for alignment;
-// use format.Node (package go/format) for output that matches gofmt.
+// Note that wlfmt uses tabs for indentation but spaces for alignment;
+// use format.Node (package weblang/wl/format) for output that matches wlfmt.
 //
 func Fprint(output io.Writer, fset *token.FileSet, node interface{}) error {
 	return (&Config{Tabwidth: 8}).Fprint(output, fset, node)

@@ -79,9 +79,9 @@ func Node(dst io.Writer, fset *token.FileSet, node interface{}) error {
 	return config.Fprint(dst, fset, node)
 }
 
-// Source formats src in canonical gofmt style and returns the result
+// Source formats src in canonical wlfmt style and returns the result
 // or an (I/O or syntax) error. src is expected to be a syntactically
-// correct Go source file, or a list of Go declarations or statements.
+// correct source file, or a list of wl declarations or statements.
 //
 // If src is a partial source file, the leading and trailing space of src
 // is applied to the result (such that it has the same leading and trailing
