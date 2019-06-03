@@ -43,7 +43,7 @@ func format(src []byte, mode checkMode) ([]byte, error) {
 	// parse src
 	f, err := parser.ParseFile(fset, "", src, parser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("parse: %s\n%s", err, src)
+		return nil, fmt.Errorf("parse: %s\n", err)
 	}
 
 	// filter exports if necessary

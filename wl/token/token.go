@@ -33,11 +33,23 @@ const (
 	QUO // /
 	REM // %
 
+	AND // &
+	OR  // |
+	XOR // ^
+	SHL // << can't use these because they mess with our generics syntax
+	SHR // >>
+
 	ADD_ASSIGN // +=
 	SUB_ASSIGN // -=
 	MUL_ASSIGN // *=
 	QUO_ASSIGN // /=
 	REM_ASSIGN // %=
+
+	AND_ASSIGN // &=
+	OR_ASSIGN  // |=
+	XOR_ASSIGN // ^=
+	SHL_ASSIGN // <<=
+	SHR_ASSIGN // >>=
 
 	LAND // &&
 	LOR  // ||
@@ -121,11 +133,23 @@ var tokens = [...]string{
 	QUO: "/",
 	REM: "%",
 
+	AND: "&",
+	OR:  "|",
+	XOR: "^",
+	SHL: "<<",
+	SHR: ">>",
+
 	ADD_ASSIGN: "+=",
 	SUB_ASSIGN: "-=",
 	MUL_ASSIGN: "*=",
 	QUO_ASSIGN: "/=",
 	REM_ASSIGN: "%=",
+
+	AND_ASSIGN: "&=",
+	OR_ASSIGN:  "|=",
+	XOR_ASSIGN: "^=",
+	SHL_ASSIGN: "<<=",
+	SHR_ASSIGN: ">>=",
 
 	LAND: "&&",
 	LOR:  "||",
@@ -228,9 +252,9 @@ func (op Token) Precedence() int {
 		return 2
 	case EQL, NEQ, LSS, LEQ, GTR, GEQ:
 		return 3
-	case ADD, SUB:
+	case ADD, SUB, OR, XOR:
 		return 4
-	case MUL, QUO, REM:
+	case MUL, QUO, REM, SHL, SHR, AND:
 		return 5
 	}
 	return LowestPrec

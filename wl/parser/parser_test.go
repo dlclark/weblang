@@ -1077,3 +1077,85 @@ func TestGenericFuncUseBasic(t *testing.T) {
 	}
 
 }
+
+var b = m{1, "test"}
+
+type m struct {
+	a int
+	z string
+}
+
+func TestGenericStructLiteral(t *testing.T) {
+	const src = `package main
+	
+	var b = m{<int,optional<string>> 1, "test" }
+	type m struct<K,V> { a K; z V; }
+	`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	val := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.ValueSpec)
+	if want, got := "b", val.Names[0].Name; want != got {
+		t.Errorf("var1 name, want %v got %v", want, got)
+	}
+
+	lit := val.Values[0].(*ast.CompositeLit)
+	if want, got := "m", lit.Type.(*ast.Ident).Name; want != got {
+		t.Errorf("var1 type name, want %v got %v", want, got)
+	}
+	if want, got := 2, len(lit.Elts); want != got {
+		t.Errorf("var1 lit value count, want %v got %v", want, got)
+	}
+	if want, got := "1", lit.Elts[0].(*ast.BasicLit).Value; want != got {
+		t.Errorf("var1 lit value 1, want %v got %v", want, got)
+	}
+	if want, got := "\"test\"", lit.Elts[1].(*ast.BasicLit).Value; want != got {
+		t.Errorf("var1 lit value 2, want %v got %v", want, got)
+	}
+}
+
+func TestGenericStructMapLiteral(t *testing.T) {
+	const src = `package main
+	
+	var b = map{<int,string>
+		 1 : "test",
+	}
+	`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	val := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.ValueSpec)
+	if want, got := "b", val.Names[0].Name; want != got {
+		t.Errorf("var1 name, want %v got %v", want, got)
+	}
+
+	lit := val.Values[0].(*ast.CompositeLit)
+	if want, got := "map", lit.Type.(*ast.Ident).Name; want != got {
+		t.Errorf("var1 type name, want %v got %v", want, got)
+	}
+	if want, got := 1, len(lit.Elts); want != got {
+		t.Errorf("var1 lit value count, want %v got %v", want, got)
+	}
+	if want, got := "1", lit.Elts[0].(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value; want != got {
+		t.Errorf("var1 lit key 1, want %v got %v", want, got)
+	}
+	if want, got := "\"test\"", lit.Elts[0].(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value; want != got {
+		t.Errorf("var1 lit value 1, want %v got %v", want, got)
+	}
+}

@@ -709,10 +709,10 @@ func _() {
 
 // Line comments with tabs
 func _() {
-	var finput *bufio.Reader	// input file
-	var stderr *bufio.Writer
-	var ftable *bufio.Writer	// y.go file
-	var foutput *bufio.Writer	// y.output file
+	var finput bufio.Reader	// input file
+	var stderr bufio.Writer
+	var ftable bufio.Writer		// y.go file
+	var foutput bufio.Writer	// y.output file
 
 	var oflag string	// -o [y.go]		- y.go file
 	var vflag string	// -v [y.output]	- y.output file

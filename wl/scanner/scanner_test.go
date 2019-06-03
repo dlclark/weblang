@@ -84,11 +84,23 @@ var tokens = [...]elt{
 	{token.QUO, "/", operator},
 	{token.REM, "%", operator},
 
+	{token.AND, "&", operator},
+	{token.OR, "|", operator},
+	{token.XOR, "^", operator},
+	{token.SHL, "<<", operator},
+	{token.SHR, ">>", operator},
+
 	{token.ADD_ASSIGN, "+=", operator},
 	{token.SUB_ASSIGN, "-=", operator},
 	{token.MUL_ASSIGN, "*=", operator},
 	{token.QUO_ASSIGN, "/=", operator},
 	{token.REM_ASSIGN, "%=", operator},
+
+	{token.AND_ASSIGN, "&=", operator},
+	{token.OR_ASSIGN, "|=", operator},
+	{token.XOR_ASSIGN, "^=", operator},
+	{token.SHL_ASSIGN, "<<=", operator},
+	{token.SHR_ASSIGN, ">>=", operator},
 
 	{token.LAND, "&&", operator},
 	{token.LOR, "||", operator},
@@ -353,28 +365,25 @@ var lines = []string{
 	"/\n",
 	"%\n",
 
-	//"&\n",
-	//"|\n",
-	//"^\n",
-	//"<<\n",
-	//">>\n",
-	//"&^\n",
-
+	"&\n",
+	"|\n",
+	"^\n",
+	"<<\n",
+	">>\n",
+	
 	"+=\n",
 	"-=\n",
 	"*=\n",
 	"/=\n",
 	"%=\n",
 
-	//"&=\n",
-	//"|=\n",
-	//"^=\n",
-	//"<<=\n",
-	//">>=\n",
-	//"&^=\n",
+	"&=\n",
+	"|=\n",
+	"^=\n",
+	"<<=\n",
+	">>=\n",
 
 	"||\n",
-	//"<-\n",
 	"++$\n",
 	"--$\n",
 

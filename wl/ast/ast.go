@@ -334,8 +334,13 @@ type (
 
 	// A CompositeLit node represents a composite literal.
 	CompositeLit struct {
-		Type       Expr      // literal type; or nil
-		Lbrace     token.Pos // position of "{"
+		Type   Expr      // literal type; or nil
+		Lbrace token.Pos // position of "{"
+
+		TypeParamsOpening token.Pos //position of "<" or NoPos
+		TypeParams        []Expr    //type params
+		TypeParamsClosing token.Pos //position of ">" or NoPos
+
 		Elts       []Expr    // list of composite elements; or nil
 		Rbrace     token.Pos // position of "}"
 		Incomplete bool      // true if (source) expressions are missing in the Elts list

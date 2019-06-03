@@ -28,13 +28,13 @@ func TestTemplateParseBasic(t *testing.T) {
 	if want, got := 3, len(str.Parts); want != got {
 		t.Fatalf("parts, want %v got %v", want, got)
 	}
-	if want, got := "\"this \"", str.Parts[0].(*ast.BasicLit).Value; want != got {
+	if want, got := "this ", str.Parts[0].(*ast.BasicLit).Value; want != got {
 		t.Errorf("first part text, want %v got %v", want, got)
 	}
 	if want, got := "test", str.Parts[1].(*ast.Ident).Name; want != got {
 		t.Errorf("second part ident, want %v got %v", want, got)
 	}
-	if want, got := "\" a\"", str.Parts[2].(*ast.BasicLit).Value; want != got {
+	if want, got := " a", str.Parts[2].(*ast.BasicLit).Value; want != got {
 		t.Errorf("third part text, want %v got %v", want, got)
 	}
 }

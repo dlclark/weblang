@@ -97,20 +97,20 @@ func _f() {
 }
 
 // Formatting of multi-line returns: test cases from issue 1207.
-func F() (*T, os.Error) {
-       return &T{
+func F() (T, os.Error) {
+       return T{
                X: 1,
                Y: 2,
        },
                nil
 }
 
-func G() (*T, *T, os.Error) {
-       return &T{
+func G() (T, T, os.Error) {
+       return T{
                X: 1,
                Y: 2,
        },
-               &T{
+               T{
                        X: 3,
                        Y: 4,
                },
@@ -118,12 +118,12 @@ func G() (*T, *T, os.Error) {
 }
 
 func _() interface{} {
-	return &fileStat{
+	return fileStat{
 			name:    basename(file.name),
 			size:    mkSize(d.FileSizeHigh, d.FileSizeLow),
 			modTime: mkModTime(d.LastWriteTime),
 			mode:    mkMode(d.FileAttributes),
-			sys:     mkSysFromFI(&d),
+			sys:     mkSysFromFI(d),
 		}, nil
 }
 
@@ -210,18 +210,6 @@ func _() {
 }
 
 
-// Formatting of selected select statements.
-func _() {
-	select {
-	}
-	select { /* this comment should not be tab-aligned because the closing } is on the same line */ }
-	select { /* this comment should be tab-aligned */
-	}
-	select { // this comment should be tab-aligned
-	}
-	select { case <-c: }
-}
-
 
 // Formatting of for-statement headers for single-line for-loops.
 func _() {
@@ -299,8 +287,8 @@ func _() {
 	for i := range a { a[i] = i
 	} // multiple lines
 
-	go func() { for { a <- <-b } }()
-	defer func() { if x := recover(); x != nil { err = fmt.Sprintf("error: %s", x.msg) } }()
+//	go func() { for { a <- <-b } }()
+//	defer func() { if x := recover(); x != nil { err = fmt.Sprintf("error: %s", x.msg) } }()
 }
 
 

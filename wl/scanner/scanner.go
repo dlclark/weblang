@@ -804,19 +804,13 @@ scanAgain:
 			}
 		case '%':
 			tok = s.switch2(token.REM, token.REM_ASSIGN)
-		//case '^':
-		//	tok = s.switch2(token.XOR, token.XOR_ASSIGN)
+		case '^':
+			tok = s.switch2(token.XOR, token.XOR_ASSIGN)
 		case '<':
-			/*if s.ch == '-' {
-				s.next()
-				tok = token.ARROW
-			} else {
-				tok = s.switch4(token.LSS, token.LEQ, '<', token.SHL, token.SHL_ASSIGN)
-			}*/
-			tok = s.switch2(token.LSS, token.LEQ)
+			tok = s.switch4(token.LSS, token.LEQ, '<', token.SHL, token.SHL_ASSIGN)
 		case '>':
-			//tok = s.switch4(token.GTR, token.GEQ, '>', token.SHR, token.SHR_ASSIGN)
-			tok = s.switch2(token.GTR, token.GEQ)
+			tok = s.switch4(token.GTR, token.GEQ, '>', token.SHR, token.SHR_ASSIGN)
+			//tok = s.switch2(token.GTR, token.GEQ)
 			if tok == token.GTR {
 				insertSemi = true
 			}
@@ -825,10 +819,7 @@ scanAgain:
 		case '!':
 			tok = s.switch2(token.NOT, token.NEQ)
 		case '&':
-			if s.ch == '&' {
-				s.next()
-				tok = token.LAND
-			}
+			tok = s.switch3(token.AND, token.AND_ASSIGN, '&', token.LAND)
 			//if s.ch == '^' {
 			//	s.next()
 			//	tok = s.switch2(token.AND_NOT, token.AND_NOT_ASSIGN)
@@ -836,11 +827,7 @@ scanAgain:
 			//	tok = s.switch3(token.AND, token.AND_ASSIGN, '&', token.LAND)
 			//}
 		case '|':
-			if s.ch == '|' {
-				s.next()
-				tok = token.LOR
-			}
-			//tok = s.switch3(token.OR, token.OR_ASSIGN, '|', token.LOR)
+			tok = s.switch3(token.OR, token.OR_ASSIGN, '|', token.LOR)
 		default:
 			// next reports unexpected BOMs - don't repeat
 			if ch != bom {

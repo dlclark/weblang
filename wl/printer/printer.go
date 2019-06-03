@@ -854,12 +854,10 @@ func mayCombine(prev token.Token, next byte) (b bool) {
 		b = next == '-' // --
 	case token.QUO:
 		b = next == '*' // /*
-	//case token.LSS:
-	//	b = next == '-' || next == '<' // <- or <<
-	//case token.AND:
-	//	b = next == '&' || next == '^' // && or &^
-	case token.ASSIGN:
-		b = next == '>' // =>
+	case token.LSS:
+		b = next == '<' // <<
+	case token.AND:
+		b = next == '&' // &&
 	}
 	return
 }

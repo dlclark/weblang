@@ -656,7 +656,16 @@ func (p *parser) parseTypeName() ast.Expr {
 		ident.Opening = p.pos
 		p.next() // move past the <
 		ident.TypeParams = p.parseTypeList()
-		ident.Closing = p.expect(token.GTR)
+		if p.tok == token.SHR {
+			// SHR happens when we see nested generics: type<a<b>>
+
+			ident.Closing = p.pos
+			// "move past" the first char of RSHIFT into the second char as a GTR
+			p.tok = token.GTR
+			p.pos = p.pos + 1
+		} else {
+			ident.Closing = p.expect(token.GTR)
+		}
 	}
 
 	return ret
@@ -1617,7 +1626,13 @@ func (p *parser) parseCallOrConversion(fun ast.Expr) *ast.CallExpr {
 		open = p.pos
 		p.next() // move past the <
 		typeParams = p.parseTypeList()
+		// if we have a GTR we're good
 		close = p.expect(token.GTR)
+
+		//we may have a semi-colon, eat it if we do
+		if p.tok == token.SEMICOLON {
+			p.next()
+		}
 	}
 
 	p.exprLev++
@@ -1722,6 +1737,25 @@ func (p *parser) parseLiteralValue(typ ast.Expr) ast.Expr {
 	}
 
 	lbrace := p.expect(token.LBRACE)
+
+	var tlOpen, tlClose token.Pos
+	var typeParams []ast.Expr
+
+	// parse generic type list
+	if p.tok == token.LSS {
+		// generic type list
+		tlOpen = p.pos
+		p.next() // move past the <
+		typeParams = p.parseTypeList()
+		// if we have a GTR we're good
+		tlClose = p.expect(token.GTR)
+
+		//we may have a semi-colon, eat it if we do
+		if p.tok == token.SEMICOLON {
+			p.next()
+		}
+	}
+
 	var elts []ast.Expr
 	p.exprLev++
 	if p.tok != token.RBRACE {
@@ -1729,7 +1763,15 @@ func (p *parser) parseLiteralValue(typ ast.Expr) ast.Expr {
 	}
 	p.exprLev--
 	rbrace := p.expectClosing(token.RBRACE, "composite literal")
-	return &ast.CompositeLit{Type: typ, Lbrace: lbrace, Elts: elts, Rbrace: rbrace}
+	return &ast.CompositeLit{
+		Type:              typ,
+		Lbrace:            lbrace,
+		TypeParamsOpening: tlOpen,
+		TypeParams:        typeParams,
+		TypeParamsClosing: tlClose,
+		Elts:              elts,
+		Rbrace:            rbrace,
+	}
 }
 
 // checkExpr checks that x is an expression (and not a type).
@@ -1868,10 +1910,6 @@ L:
 				p.resolve(x)
 			}
 			x = p.parseCallOrConversion(p.checkExprOrType(x))
-		//case token.LSS:
-		// a less than indicates calling a generic function?
-		// if f<bool>(in) { }
-
 		case token.LBRACE:
 			if isLiteralType(x) && (p.exprLev >= 0 || !isTypeName(x)) {
 				if lhs {
@@ -1897,7 +1935,7 @@ func (p *parser) parseUnaryExpr(lhs bool) ast.Expr {
 	}
 
 	switch p.tok {
-	case token.ADD, token.SUB, token.NOT:
+	case token.ADD, token.SUB, token.NOT, token.XOR, token.AND:
 		pos, op := p.pos, p.tok
 		p.next()
 		x := p.parseUnaryExpr(false)
@@ -2044,7 +2082,8 @@ func (p *parser) parseSimpleStmt(mode int) (ast.Stmt, bool) {
 	case
 		token.DEFINE, token.ASSIGN, token.ADD_ASSIGN,
 		token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN,
-		token.REM_ASSIGN:
+		token.REM_ASSIGN, token.AND_ASSIGN, token.OR_ASSIGN,
+		token.XOR_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN:
 		// assignment statement, possibly part of a range clause
 		pos, tok := p.pos, p.tok
 		p.next()
@@ -2630,7 +2669,7 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 		// tokens that may start an expression
 		token.IDENT, token.INT, token.FLOAT, token.TEMPLATE, token.STRING, token.FUNC, token.FN, token.LPAREN, // operands
 		token.LBRACK, token.STRUCT, token.INTERFACE, token.ENUM, token.UNION, // composite types
-		token.ADD, token.SUB, token.MUL: // unary operators
+		token.ADD, token.SUB, token.MUL, token.AND, token.XOR, token.NOT: // unary operators
 		s, _ = p.parseSimpleStmt(labelOk)
 		// because of the required look-ahead, labeled statements are
 		// parsed by parseSimpleStmt - don't expect a semicolon after

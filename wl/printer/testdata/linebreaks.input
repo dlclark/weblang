@@ -25,32 +25,32 @@ type writerTest struct {
 }
 
 var writerTests = []writerTest{
-	&writerTest{
+	writerTest{
 		file: "testdata/writer.tar",
 		entries: []writerTestEntry{
 			writerTestEntry{
-				header: &Header{
+				header: Header{
 					Name: "small.txt",
 					Mode: 0640,
 					Uid: 73025,
 					Gid: 5000,
 					Size: 5,
 					Mtime: 1246508266,
-					Typeflag: '0',
+					Typeflag: "0",
 					Uname: "dsymonds",
 					Gname: "eng",
 				},
 				contents: "Kilts",
 			},
 			writerTestEntry{
-				header: &Header{
+				header: Header{
 					Name: "small2.txt",
 					Mode: 0640,
 					Uid: 73025,
 					Gid: 5000,
 					Size: 11,
 					Mtime: 1245217492,
-					Typeflag: '0',
+					Typeflag: "0",
 					Uname: "dsymonds",
 					Gname: "eng",
 				},
@@ -61,7 +61,7 @@ var writerTests = []writerTest{
 	// The truncated test file was produced using these commands:
 	//   dd if=/dev/zero bs=1048576 count=16384 > /tmp/16gig.txt
 	//   tar -b 1 -c -f- /tmp/16gig.txt | dd bs=512 count=8 > writer-big.tar
-	&writerTest{
+	writerTest{
 		file: "testdata/writer-big.tar",
 		entries: []writerTestEntry{
 			writerTestEntry{
@@ -72,7 +72,7 @@ var writerTests = []writerTest{
 					Gid: 5000,
 					Size: 16 << 30,
 					Mtime: 1254699560,
-					Typeflag: '0',
+					Typeflag: "0",
 					Uname: "dsymonds",
 					Gname: "eng",
 				},
@@ -88,7 +88,7 @@ type untarTest struct {
 }
 
 var untarTests = []untarTest{
-	&untarTest{
+	untarTest{
 		file: "testdata/gnu.tar",
 		headers: []Header{
 			Header{
@@ -98,7 +98,7 @@ var untarTests = []untarTest{
 				Gid: 5000,
 				Size: 5,
 				Mtime: 1244428340,
-				Typeflag: '0',
+				Typeflag: "0",
 				Uname: "dsymonds",
 				Gname: "eng",
 			},
@@ -109,7 +109,7 @@ var untarTests = []untarTest{
 				Gid: 5000,
 				Size: 11,
 				Mtime: 1244436044,
-				Typeflag: '0',
+				Typeflag: "0",
 				Uname: "dsymonds",
 				Gname: "eng",
 			},
@@ -125,7 +125,7 @@ var untarTests = []untarTest{
 				Gid: 5000,
 				Size: 5,
 				Mtime: 1244592783,
-				Typeflag: '0',
+				Typeflag: "0",
 				Uname: "dsymonds",
 				Gname: "eng",
 				Atime: 1244592783,
@@ -138,7 +138,7 @@ var untarTests = []untarTest{
 				Gid: 5000,
 				Size: 11,
 				Mtime: 1244592783,
-				Typeflag: '0',
+				Typeflag: "0",
 				Uname: "dsymonds",
 				Gname: "eng",
 				Atime: 1244592783,
@@ -156,7 +156,7 @@ var untarTests = []untarTest{
 				Gid: 5000,
 				Size: 5,
 				Mtime: 1244593104,
-				Typeflag: '\x00',
+				Typeflag: "\x00",
 			},
 			Header{
 				Name: "small2.txt",
@@ -165,7 +165,7 @@ var untarTests = []untarTest{
 				Gid: 5000,
 				Size: 11,
 				Mtime: 1244593104,
-				Typeflag: '\x00',
+				Typeflag: "\x00",
 			},
 		},
 	},

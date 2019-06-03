@@ -154,22 +154,6 @@ const (
 	_	= 1e+100
 	_	= 1e-100
 	_	= 2.71828e-1000
-	_	= 0i
-	_	= 1i
-	_	= 012345678901234567889i
-	_	= 123456789012345678890i
-	_	= 0.i
-	_	= .0i
-	_	= 3.14159265i
-	_	= 1e0i
-	_	= 1e+100i
-	_	= 1e-100i
-	_	= 2.71828e-1000i
-	_	= 'a'
-	_	= '\000'
-	_	= '\xFF'
-	_	= '\uff16'
-	_	= '\U0000ff16'
 	_	= `foobar`
 	_	= `foo
 ---
@@ -179,45 +163,45 @@ bar`
 
 func _() {
 	type _ int
-	type _ *int
+	//type _ *int
 	type _ []int
-	type _ map[string]int
-	type _ chan int
+	type _ map<string, int>
+	//type _ chan int
 	type _ func() int
 
 	var _ int
-	var _ *int
+	//var _ *int
 	var _ []int
-	var _ map[string]int
-	var _ chan int
+	var _ map<string, int>
+	//var _ chan int
 	var _ func() int
 
 	type _ struct{}
-	type _ *struct{}
+	//type _ *struct{}
 	type _ []struct{}
-	type _ map[string]struct{}
-	type _ chan struct{}
+	type _ map<string, struct{}>
+	//type _ chan struct{}
 	type _ func() struct{}
 
 	type _ interface{}
-	type _ *interface{}
+	//type _ *interface{}
 	type _ []interface{}
-	type _ map[string]interface{}
-	type _ chan interface{}
+	type _ map<string, interface{}>
+	//type _ chan interface{}
 	type _ func() interface{}
 
 	var _ struct{}
-	var _ *struct{}
+	//var _ *struct{}
 	var _ []struct{}
-	var _ map[string]struct{}
-	var _ chan struct{}
+	var _ map<string, struct{}>
+	//var _ chan struct{}
 	var _ func() struct{}
 
 	var _ interface{}
-	var _ *interface{}
+	//var _ *interface{}
 	var _ []interface{}
-	var _ map[string]interface{}
-	var _ chan interface{}
+	var _ map<string, interface{}>
+	//var _ chan interface{}
 	var _ func() interface{}
 }
 
@@ -244,7 +228,7 @@ type (
 	_	interface{}
 
 	// a comment
-	_	map[string]int
+	_	map<string, int>
 )
 
 var (
@@ -432,7 +416,7 @@ func _() {
 			_, _	int
 			_	float
 		}
-		xxxx	chan<- string
+		//xxxx chan<- string
 	)
 }
 
@@ -602,8 +586,8 @@ var (
 )
 
 func _() {
-	var privateKey2 = &Block{Type: "RSA PRIVATE KEY",
-		Headers:	map[string]string{},
+	var privateKey2 = Block{Type: "RSA PRIVATE KEY",
+		Headers:	map{<string, string>},
 		Bytes: []uint8{0x30, 0x82, 0x1, 0x3a, 0x2, 0x1, 0x0, 0x2,
 			0x41, 0x0, 0xb2, 0x99, 0xf, 0x49, 0xc4, 0x7d, 0xfa, 0x8c,
 			0xd4, 0x0, 0xae, 0x6a, 0x4d, 0x1b, 0x8a, 0x3b, 0x6a, 0x13,
@@ -614,7 +598,7 @@ func _() {
 
 func _() {
 	var Universe = Scope{
-		Names: map[string]*Ident{
+		Names: map{<string, Ident>
 			// basic types
 			"bool":		nil,
 			"byte":		nil,
@@ -656,7 +640,7 @@ func _() {
 }
 
 // alignment of map composite entries
-var _ = map[int]int{
+var _ = map{
 	// small key sizes: always align even if size ratios are large
 	a:			a,
 	abcdefghabcdefgh:	a,
@@ -717,15 +701,15 @@ var _ = T{0: 0,	// not aligned
 
 // test cases form issue 8685
 // not aligned
-var _ = map[int]string{1: "spring", 2: "summer",
+var _ = map{1: "spring", 2: "summer",
 	3:	"autumn", 4: "winter"}
 
 // not aligned
-var _ = map[string]string{"a": "spring", "b": "summer",
+var _ = map{"a": "spring", "b": "summer",
 	"c":	"autumn", "d": "winter"}
 
 // aligned
-var _ = map[string]string{"a": "spring",
+var _ = map{"a": "spring",
 	"b":	"summer",
 	"c":	"autumn",
 	"d":	"winter"}
@@ -786,24 +770,20 @@ func _longer_name_() {	// this comment must not force the {} from above to align
 
 // ellipsis parameters
 func _(...int)
-func _(...*int)
 func _(...[]int)
 func _(...struct{})
 func _(bool, ...interface{})
 func _(bool, ...func())
 func _(bool, ...func(...int))
-func _(bool, ...map[string]int)
-func _(bool, ...chan int)
+func _(bool, ...map<string, int>)
 
 func _(b bool, x ...int)
-func _(b bool, x ...*int)
 func _(b bool, x ...[]int)
 func _(b bool, x ...struct{})
 func _(x ...interface{})
 func _(x ...func())
 func _(x ...func(...int))
-func _(x ...map[string]int)
-func _(x ...chan int)
+func _(x ...map<string, int>)
 
 // these parameter lists must remain multi-line since they are multi-line in the source
 func _(bool,
@@ -862,11 +842,6 @@ func _(x int,	// comment
 }
 
 // properly indent multi-line signatures
-func ManageStatus(in <-chan *Status, req <-chan Request,
-	stat chan<- *TargetInfo,
-	TargetHistorySize int) {
-}
-
 func MultiLineSignature0(
 	a, b, c int,
 ) {
@@ -958,15 +933,6 @@ func _() (x int)
 func _() (x int)
 func _() (x int)
 
-// special cases: some channel types require parentheses
-func _(x chan (<-chan int))
-func _(x chan (<-chan int))
-func _(x chan (<-chan int))
-
-func _(x chan<- (chan int))
-func _(x chan<- (chan int))
-func _(x chan<- (chan int))
-
 // don't introduce comma after last parameter if the closing ) is on the same line
 // even if the parameter type itself is multi-line (test cases from issue 4533)
 func _(...interface{})
@@ -975,8 +941,8 @@ func _(...interface {
 	n()
 })	// no extra comma between } and )
 
-func (t *T) _(...interface{})
-func (t *T) _(...interface {
+func (t T) _(...interface{})
+func (t T) _(...interface {
 	m()
 	n()
 })	// no extra comma between } and )
