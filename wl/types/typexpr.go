@@ -7,11 +7,11 @@
 package types
 
 import (
+	"sort"
+	"strconv"
 	"weblang/wl/ast"
 	"weblang/wl/constant"
 	"weblang/wl/token"
-	"sort"
-	"strconv"
 )
 
 // ident type-checks identifier e and initializes x with the value or type of e.
@@ -180,7 +180,7 @@ func (check *Checker) funcType(sig *Signature, recvPar *ast.FieldList, ftyp *ast
 		}
 		// spec: "The receiver type must be of the form T or *T where T is a type name."
 		// (ignore invalid types - error was reported before)
-		if t, _ := deref(recv.typ); t != Typ[Invalid] {
+		if t := recv.typ; t != Typ[Invalid] {
 			var err string
 			if T, _ := t.(*Named); T != nil {
 				// spec: "The type denoted by T is called the receiver base type; it must not
@@ -191,8 +191,8 @@ func (check *Checker) funcType(sig *Signature, recvPar *ast.FieldList, ftyp *ast
 				} else {
 					// TODO(gri) This is not correct if the underlying type is unknown yet.
 					switch T.underlying.(type) {
-					case *Pointer, *Interface:
-						err = "pointer or interface type"
+					case *Interface:
+						err = "interface type"
 					}
 				}
 			} else {
@@ -258,19 +258,19 @@ func (check *Checker) typInternal(e ast.Expr, def *Named) Type {
 		return check.definedType(e.X, def)
 
 	case *ast.ArrayType:
-		if e.Len != nil {
+		/*if e.Len != nil {
 			typ := new(Array)
 			def.setUnderlying(typ)
 			typ.len = check.arrayLength(e.Len)
 			typ.elem = check.typ(e.Elt)
 			return typ
 
-		} else {
-			typ := new(Slice)
-			def.setUnderlying(typ)
-			typ.elem = check.indirectType(e.Elt)
-			return typ
-		}
+		} else {*/
+		typ := new(Slice)
+		def.setUnderlying(typ)
+		typ.elem = check.indirectType(e.Elt)
+		return typ
+		//}
 
 	case *ast.StructType:
 		typ := new(Struct)
@@ -291,26 +291,26 @@ func (check *Checker) typInternal(e ast.Expr, def *Named) Type {
 		return typ
 
 	/*case *ast.MapType:
-		typ := new(Map)
-		def.setUnderlying(typ)
+	typ := new(Map)
+	def.setUnderlying(typ)
 
-		typ.key = check.indirectType(e.Key)
-		typ.elem = check.indirectType(e.Value)
+	typ.key = check.indirectType(e.Key)
+	typ.elem = check.indirectType(e.Value)
 
-		// spec: "The comparison operators == and != must be fully defined
-		// for operands of the key type; thus the key type must not be a
-		// function, map, or slice."
-		//
-		// Delay this check because it requires fully setup types;
-		// it is safe to continue in any case (was issue 6667).
-		check.later(func() {
-			if !Comparable(typ.key) {
-				check.errorf(e.Key.Pos(), "invalid map key type %s", typ.key)
-			}
-		})
+	// spec: "The comparison operators == and != must be fully defined
+	// for operands of the key type; thus the key type must not be a
+	// function, map, or slice."
+	//
+	// Delay this check because it requires fully setup types;
+	// it is safe to continue in any case (was issue 6667).
+	check.later(func() {
+		if !Comparable(typ.key) {
+			check.errorf(e.Key.Pos(), "invalid map key type %s", typ.key)
+		}
+	})
 
-		return typ
-*/
+	return typ
+	*/
 	default:
 		check.errorf(e.Pos(), "%s is not a type", e)
 	}
@@ -705,10 +705,9 @@ func (check *Checker) structType(styp *Struct, e *ast.StructType) {
 				addInvalid(name, pos)
 				continue
 			}
-			t, isPtr := deref(typ)
 			// Because we have a name, typ must be of the form T or *T, where T is the name
 			// of a (named or alias) type, and t (= deref(typ)) must be the type of T.
-			switch t := t.Underlying().(type) {
+			switch t := typ.Underlying().(type) {
 			case *Basic:
 				if t == Typ[Invalid] {
 					// error was reported before
@@ -716,17 +715,13 @@ func (check *Checker) structType(styp *Struct, e *ast.StructType) {
 					continue
 				}
 
-			case *Pointer:
-				check.errorf(pos, "embedded field type cannot be a pointer")
-				addInvalid(name, pos)
-				continue
+			//case *Pointer:
+			//	check.errorf(pos, "embedded field type cannot be a pointer")
+			//	addInvalid(name, pos)
+			//	continue
 
 			case *Interface:
-				if isPtr {
-					check.errorf(pos, "embedded field type cannot be a pointer to an interface")
-					addInvalid(name, pos)
-					continue
-				}
+
 			}
 			add(name, true, pos)
 		}

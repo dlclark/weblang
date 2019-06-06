@@ -416,7 +416,7 @@ func (check *Checker) builtin(x *operand, call *ast.CallExpr, id builtinId) (_ b
 		}
 
 		x.typ = resTyp
-*/
+	*/
 	case _Make:
 		// make(T, n)
 		// make(T, n, m)
@@ -431,7 +431,7 @@ func (check *Checker) builtin(x *operand, call *ast.CallExpr, id builtinId) (_ b
 		switch T.Underlying().(type) {
 		case *Slice:
 			min = 2
-		case *Map, *Chan:
+		case *Map:
 			min = 1
 		default:
 			check.invalidArg(arg0.Pos(), "cannot make %s; type must be slice, map, or channel", arg0)
@@ -467,7 +467,7 @@ func (check *Checker) builtin(x *operand, call *ast.CallExpr, id builtinId) (_ b
 		}
 
 		x.mode = value
-		x.typ = &Pointer{base: T}
+		x.typ = T
 		if check.Types != nil {
 			check.recordBuiltinType(call.Fun, makeSig(x.typ, T))
 		}
@@ -529,75 +529,75 @@ func (check *Checker) builtin(x *operand, call *ast.CallExpr, id builtinId) (_ b
 			check.recordBuiltinType(call.Fun, makeSig(x.typ))
 		}
 
-/*	case _Alignof:
-		// unsafe.Alignof(x T) uintptr
-		check.assignment(x, nil, "argument to unsafe.Alignof")
-		if x.mode == invalid {
-			return
-		}
+		/*	case _Alignof:
+				// unsafe.Alignof(x T) uintptr
+				check.assignment(x, nil, "argument to unsafe.Alignof")
+				if x.mode == invalid {
+					return
+				}
 
-		x.mode = constant_
-		x.val = constant.MakeInt64(check.conf.alignof(x.typ))
-		x.typ = Typ[Uintptr]
-		// result is constant - no need to record signature
+				x.mode = constant_
+				x.val = constant.MakeInt64(check.conf.alignof(x.typ))
+				x.typ = Typ[Uintptr]
+				// result is constant - no need to record signature
 
-	case _Offsetof:
-		// unsafe.Offsetof(x T) uintptr, where x must be a selector
-		// (no argument evaluated yet)
-		arg0 := call.Args[0]
-		selx, _ := unparen(arg0).(*ast.SelectorExpr)
-		if selx == nil {
-			check.invalidArg(arg0.Pos(), "%s is not a selector expression", arg0)
-			check.use(arg0)
-			return
-		}
+			case _Offsetof:
+				// unsafe.Offsetof(x T) uintptr, where x must be a selector
+				// (no argument evaluated yet)
+				arg0 := call.Args[0]
+				selx, _ := unparen(arg0).(*ast.SelectorExpr)
+				if selx == nil {
+					check.invalidArg(arg0.Pos(), "%s is not a selector expression", arg0)
+					check.use(arg0)
+					return
+				}
 
-		check.expr(x, selx.X)
-		if x.mode == invalid {
-			return
-		}
+				check.expr(x, selx.X)
+				if x.mode == invalid {
+					return
+				}
 
-		base := derefStructPtr(x.typ)
-		sel := selx.Sel.Name
-		obj, index, indirect := LookupFieldOrMethod(base, false, check.pkg, sel)
-		switch obj.(type) {
-		case nil:
-			check.invalidArg(x.pos(), "%s has no single field %s", base, sel)
-			return
-		case *Func:
-			// TODO(gri) Using derefStructPtr may result in methods being found
-			// that don't actually exist. An error either way, but the error
-			// message is confusing. See: https://play.golang.org/p/al75v23kUy ,
-			// but go/types reports: "invalid argument: x.m is a method value".
-			check.invalidArg(arg0.Pos(), "%s is a method value", arg0)
-			return
-		}
-		if indirect {
-			check.invalidArg(x.pos(), "field %s is embedded via a pointer in %s", sel, base)
-			return
-		}
+				base := derefStructPtr(x.typ)
+				sel := selx.Sel.Name
+				obj, index, indirect := LookupFieldOrMethod(base, false, check.pkg, sel)
+				switch obj.(type) {
+				case nil:
+					check.invalidArg(x.pos(), "%s has no single field %s", base, sel)
+					return
+				case *Func:
+					// TODO(gri) Using derefStructPtr may result in methods being found
+					// that don't actually exist. An error either way, but the error
+					// message is confusing. See: https://play.golang.org/p/al75v23kUy ,
+					// but go/types reports: "invalid argument: x.m is a method value".
+					check.invalidArg(arg0.Pos(), "%s is a method value", arg0)
+					return
+				}
+				if indirect {
+					check.invalidArg(x.pos(), "field %s is embedded via a pointer in %s", sel, base)
+					return
+				}
 
-		// TODO(gri) Should we pass x.typ instead of base (and indirect report if derefStructPtr indirected)?
-		check.recordSelection(selx, FieldVal, base, obj, index, false)
+				// TODO(gri) Should we pass x.typ instead of base (and indirect report if derefStructPtr indirected)?
+				check.recordSelection(selx, FieldVal, base, obj, index, false)
 
-		offs := check.conf.offsetof(base, index)
-		x.mode = constant_
-		x.val = constant.MakeInt64(offs)
-		x.typ = Typ[Uintptr]
-		// result is constant - no need to record signature
+				offs := check.conf.offsetof(base, index)
+				x.mode = constant_
+				x.val = constant.MakeInt64(offs)
+				x.typ = Typ[Uintptr]
+				// result is constant - no need to record signature
 
-	case _Sizeof:
-		// unsafe.Sizeof(x T) uintptr
-		check.assignment(x, nil, "argument to unsafe.Sizeof")
-		if x.mode == invalid {
-			return
-		}
+			case _Sizeof:
+				// unsafe.Sizeof(x T) uintptr
+				check.assignment(x, nil, "argument to unsafe.Sizeof")
+				if x.mode == invalid {
+					return
+				}
 
-		x.mode = constant_
-		x.val = constant.MakeInt64(check.conf.sizeof(x.typ))
-		x.typ = Typ[Uintptr]
-		// result is constant - no need to record signature
-*/
+				x.mode = constant_
+				x.val = constant.MakeInt64(check.conf.sizeof(x.typ))
+				x.typ = Typ[Uintptr]
+				// result is constant - no need to record signature
+		*/
 	case _Assert:
 		// assert(pred) causes a typechecker error if pred is false.
 		// The result of assert is the value of pred if there is no error.
@@ -662,14 +662,14 @@ func makeSig(res Type, args ...Type) *Signature {
 // implicitArrayDeref returns A if typ is of the form *A and A is an array;
 // otherwise it returns typ.
 //
-func implicitArrayDeref(typ Type) Type {
+/*func implicitArrayDeref(typ Type) Type {
 	if p, ok := typ.(*Pointer); ok {
 		if a, ok := p.base.Underlying().(*Array); ok {
 			return a
 		}
 	}
 	return typ
-}
+}*/
 
 // unparen returns e with any enclosing parentheses stripped.
 func unparen(e ast.Expr) ast.Expr {

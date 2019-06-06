@@ -7,10 +7,10 @@
 package types
 
 import (
+	"sort"
 	"weblang/wl/ast"
 	"weblang/wl/constant"
 	"weblang/wl/token"
-	"sort"
 )
 
 func (check *Checker) funcBody(decl *declInfo, name string, sig *Signature, body *ast.BlockStmt, iota constant.Value) {
@@ -676,31 +676,31 @@ func (check *Checker) stmt(ctxt stmtContext, s ast.Stmt) {
 					key = Typ[Int]
 					val = Typ[String] // strings index strings
 				}
-			case *Array:
-				key = Typ[Int]
-				val = typ.elem
+				//			case *Array:
+				//				key = Typ[Int]
+				//				val = typ.elem
 			case *Slice:
 				key = Typ[Int]
 				val = typ.elem
-			case *Pointer:
-				if typ, _ := typ.base.Underlying().(*Array); typ != nil {
-					key = Typ[Int]
-					val = typ.elem
-				}
+				//			case *Pointer:
+				//				if typ, _ := typ.base.Underlying().(*Array); typ != nil {
+				//					key = Typ[Int]
+				//					val = typ.elem
+				//				}
 			case *Map:
 				key = typ.key
 				val = typ.elem
-			case *Chan:
-				key = typ.elem
-				val = Typ[Invalid]
-				if typ.dir == SendOnly {
-					check.errorf(x.pos(), "cannot range over send-only channel %s", &x)
-					// ok to continue
-				}
-				if s.Value != nil {
-					check.errorf(s.Value.Pos(), "iteration over %s permits only one iteration variable", &x)
-					// ok to continue
-				}
+				/*			case *Chan:
+							key = typ.elem
+							val = Typ[Invalid]
+							if typ.dir == SendOnly {
+								check.errorf(x.pos(), "cannot range over send-only channel %s", &x)
+								// ok to continue
+							}
+							if s.Value != nil {
+								check.errorf(s.Value.Pos(), "iteration over %s permits only one iteration variable", &x)
+								// ok to continue
+							}*/
 			}
 		}
 

@@ -48,7 +48,7 @@ const (
 	IsUntyped
 
 	IsOrdered   = IsInteger | IsFloat | IsString
-	IsNumeric   = IsInteger | IsFloat 
+	IsNumeric   = IsInteger | IsFloat
 	IsConstType = IsBoolean | IsNumeric | IsString
 )
 
@@ -67,23 +67,6 @@ func (b *Basic) Info() BasicInfo { return b.info }
 
 // Name returns the name of basic type b.
 func (b *Basic) Name() string { return b.name }
-
-// An Array represents an array type.
-type Array struct {
-	len  int64
-	elem Type
-}
-
-// NewArray returns a new array type for the given element type and length.
-// A negative length indicates an unknown length.
-func NewArray(elem Type, len int64) *Array { return &Array{len, elem} }
-
-// Len returns the length of array a.
-// A negative result indicates an unknown length.
-func (a *Array) Len() int64 { return a.len }
-
-// Elem returns element type of array a.
-func (a *Array) Elem() Type { return a.elem }
 
 // A Slice represents a slice type.
 type Slice struct {
@@ -132,17 +115,6 @@ func (s *Struct) Tag(i int) string {
 	}
 	return ""
 }
-
-// A Pointer represents a pointer type.
-type Pointer struct {
-	base Type // element type
-}
-
-// NewPointer returns a new pointer type for the given element (base) type.
-func NewPointer(elem Type) *Pointer { return &Pointer{base: elem} }
-
-// Elem returns the element type for the given pointer p.
-func (p *Pointer) Elem() Type { return p.base }
 
 // A Tuple represents an ordered list of variables; a nil *Tuple is a valid (empty) tuple.
 // Tuples are used as components of signatures and to represent the type of multiple
@@ -350,33 +322,6 @@ func (m *Map) Key() Type { return m.key }
 // Elem returns the element type of map m.
 func (m *Map) Elem() Type { return m.elem }
 
-// A Chan represents a channel type.
-type Chan struct {
-	dir  ChanDir
-	elem Type
-}
-
-// A ChanDir value indicates a channel direction.
-type ChanDir int
-
-// The direction of a channel is indicated by one of these constants.
-const (
-	SendRecv ChanDir = iota
-	SendOnly
-	RecvOnly
-)
-
-// NewChan returns a new channel type for the given direction and element type.
-func NewChan(dir ChanDir, elem Type) *Chan {
-	return &Chan{dir, elem}
-}
-
-// Dir returns the direction of channel c.
-func (c *Chan) Dir() ChanDir { return c.dir }
-
-// Elem returns the element type of channel c.
-func (c *Chan) Elem() Type { return c.elem }
-
 // A Named represents a named type.
 type Named struct {
 	obj        *TypeName // corresponding declared object
@@ -428,25 +373,19 @@ func (t *Named) AddMethod(m *Func) {
 // Implementations for Type methods.
 
 func (b *Basic) Underlying() Type     { return b }
-func (a *Array) Underlying() Type     { return a }
 func (s *Slice) Underlying() Type     { return s }
 func (s *Struct) Underlying() Type    { return s }
-func (p *Pointer) Underlying() Type   { return p }
 func (t *Tuple) Underlying() Type     { return t }
 func (s *Signature) Underlying() Type { return s }
 func (t *Interface) Underlying() Type { return t }
 func (m *Map) Underlying() Type       { return m }
-func (c *Chan) Underlying() Type      { return c }
 func (t *Named) Underlying() Type     { return t.underlying }
 
 func (b *Basic) String() string     { return TypeString(b, nil) }
-func (a *Array) String() string     { return TypeString(a, nil) }
 func (s *Slice) String() string     { return TypeString(s, nil) }
 func (s *Struct) String() string    { return TypeString(s, nil) }
-func (p *Pointer) String() string   { return TypeString(p, nil) }
 func (t *Tuple) String() string     { return TypeString(t, nil) }
 func (s *Signature) String() string { return TypeString(s, nil) }
 func (t *Interface) String() string { return TypeString(t, nil) }
 func (m *Map) String() string       { return TypeString(m, nil) }
-func (c *Chan) String() string      { return TypeString(c, nil) }
 func (t *Named) String() string     { return TypeString(t, nil) }

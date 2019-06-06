@@ -224,5 +224,5 @@ func ParseExprFrom(fset *token.FileSet, filename string, src interface{}, mode M
 // in error messages is the empty string.
 //
 func ParseExpr(x string) (ast.Expr, error) {
-	return ParseExprFrom(token.NewFileSet(), "", []byte(x), Trace)
+	return ParseExprFrom(token.NewFileSet(), "", []byte(x), 0)
 }

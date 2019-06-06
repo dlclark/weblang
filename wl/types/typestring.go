@@ -95,9 +95,9 @@ func writeType(buf *bytes.Buffer, typ Type, qf Qualifier, visited []Type) {
 	case *Basic:
 		buf.WriteString(t.name)
 
-	case *Array:
-		fmt.Fprintf(buf, "[%d]", t.len)
-		writeType(buf, t.elem, qf, visited)
+		//	case *Array:
+		//		fmt.Fprintf(buf, "[%d]", t.len)
+		//		writeType(buf, t.elem, qf, visited)
 
 	case *Slice:
 		buf.WriteString("[]")
@@ -120,9 +120,9 @@ func writeType(buf *bytes.Buffer, typ Type, qf Qualifier, visited []Type) {
 		}
 		buf.WriteByte('}')
 
-	case *Pointer:
-		buf.WriteByte('*')
-		writeType(buf, t.base, qf, visited)
+		//	case *Pointer:
+		//		buf.WriteByte('*')
+		//		writeType(buf, t.base, qf, visited)
 
 	case *Tuple:
 		writeTuple(buf, t, false, qf, visited)
@@ -188,32 +188,32 @@ func writeType(buf *bytes.Buffer, typ Type, qf Qualifier, visited []Type) {
 		buf.WriteByte(']')
 		writeType(buf, t.elem, qf, visited)
 
-	case *Chan:
-		var s string
-		var parens bool
-		switch t.dir {
-		case SendRecv:
-			s = "chan "
-			// chan (<-chan T) requires parentheses
-			if c, _ := t.elem.(*Chan); c != nil && c.dir == RecvOnly {
-				parens = true
+		/*	case *Chan:
+			var s string
+			var parens bool
+			switch t.dir {
+			case SendRecv:
+				s = "chan "
+				// chan (<-chan T) requires parentheses
+				if c, _ := t.elem.(*Chan); c != nil && c.dir == RecvOnly {
+					parens = true
+				}
+			case SendOnly:
+				s = "chan<- "
+			case RecvOnly:
+				s = "<-chan "
+			default:
+				panic("unreachable")
 			}
-		case SendOnly:
-			s = "chan<- "
-		case RecvOnly:
-			s = "<-chan "
-		default:
-			panic("unreachable")
-		}
-		buf.WriteString(s)
-		if parens {
-			buf.WriteByte('(')
-		}
-		writeType(buf, t.elem, qf, visited)
-		if parens {
-			buf.WriteByte(')')
-		}
-
+			buf.WriteString(s)
+			if parens {
+				buf.WriteByte('(')
+			}
+			writeType(buf, t.elem, qf, visited)
+			if parens {
+				buf.WriteByte(')')
+			}
+		*/
 	case *Named:
 		s := "<Named w/o object>"
 		if obj := t.obj; obj != nil {

@@ -84,7 +84,7 @@ func Comparable(T Type) bool {
 		// assume invalid types to be comparable
 		// to avoid follow-up errors
 		return t.kind != UntypedNil
-	case *Pointer, *Interface, *Chan:
+	case *Interface:
 		return true
 	case *Struct:
 		for _, f := range t.fields {
@@ -93,8 +93,8 @@ func Comparable(T Type) bool {
 			}
 		}
 		return true
-	case *Array:
-		return Comparable(t.elem)
+		//	case *Array:
+		//		return Comparable(t.elem)
 	}
 	return false
 }
@@ -104,7 +104,7 @@ func hasNil(typ Type) bool {
 	switch typ.Underlying().(type) {
 	case *Basic:
 		return false
-	case *Slice, *Pointer, *Signature, *Interface, *Map, *Chan:
+	case *Slice, *Signature, *Interface, *Map:
 		return true
 	}
 	return false
@@ -146,15 +146,15 @@ func identical(x, y Type, cmpTags bool, p *ifacePair) bool {
 			return x.kind == y.kind
 		}
 
-	case *Array:
-		// Two array types are identical if they have identical element types
-		// and the same array length.
-		if y, ok := y.(*Array); ok {
-			// If one or both array lengths are unknown (< 0) due to some error,
-			// assume they are the same to avoid spurious follow-on errors.
-			return (x.len < 0 || y.len < 0 || x.len == y.len) && identical(x.elem, y.elem, cmpTags, p)
-		}
-
+	/*case *Array:
+	// Two array types are identical if they have identical element types
+	// and the same array length.
+	if y, ok := y.(*Array); ok {
+		// If one or both array lengths are unknown (< 0) due to some error,
+		// assume they are the same to avoid spurious follow-on errors.
+		return (x.len < 0 || y.len < 0 || x.len == y.len) && identical(x.elem, y.elem, cmpTags, p)
+	}
+	*/
 	case *Slice:
 		// Two slice types are identical if they have identical element types.
 		if y, ok := y.(*Slice); ok {
@@ -181,12 +181,12 @@ func identical(x, y Type, cmpTags bool, p *ifacePair) bool {
 			}
 		}
 
-	case *Pointer:
-		// Two pointer types are identical if they have identical base types.
-		if y, ok := y.(*Pointer); ok {
-			return identical(x.base, y.base, cmpTags, p)
-		}
-
+	/*case *Pointer:
+	// Two pointer types are identical if they have identical base types.
+	if y, ok := y.(*Pointer); ok {
+		return identical(x.base, y.base, cmpTags, p)
+	}
+	*/
 	case *Tuple:
 		// Two tuples types are identical if they have the same number of elements
 		// and corresponding elements have identical types.
@@ -272,13 +272,13 @@ func identical(x, y Type, cmpTags bool, p *ifacePair) bool {
 			return identical(x.key, y.key, cmpTags, p) && identical(x.elem, y.elem, cmpTags, p)
 		}
 
-	case *Chan:
-		// Two channel types are identical if they have identical value types
-		// and the same direction.
-		if y, ok := y.(*Chan); ok {
-			return x.dir == y.dir && identical(x.elem, y.elem, cmpTags, p)
-		}
-
+	/*case *Chan:
+	// Two channel types are identical if they have identical value types
+	// and the same direction.
+	if y, ok := y.(*Chan); ok {
+		return x.dir == y.dir && identical(x.elem, y.elem, cmpTags, p)
+	}
+	*/
 	case *Named:
 		// Two named types are identical if their type names originate
 		// in the same type declaration.

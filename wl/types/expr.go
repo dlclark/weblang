@@ -8,10 +8,10 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"weblang/wl/ast"
 	"weblang/wl/constant"
 	"weblang/wl/token"
-	"math"
 )
 
 /*
@@ -80,7 +80,7 @@ func (check *Checker) op(m opPredicates, x *operand, op token.Token) bool {
 
 // The unary expression e may be nil. It's passed in for better error messages only.
 func (check *Checker) unary(x *operand, e *ast.UnaryExpr, op token.Token) {
-	
+
 	if !check.op(unaryOpPredicates, x, op) {
 		x.mode = invalid
 		return
@@ -184,7 +184,7 @@ func representableConst(x constant.Value, check *Checker, typ *Basic, rounded *c
 			}
 		}
 		// x does not fit into int64
-		switch  constant.BitLen(x); typ.kind {
+		switch constant.BitLen(x); typ.kind {
 		case UntypedInt:
 			return true
 		}
@@ -210,7 +210,6 @@ func representableConst(x constant.Value, check *Checker, typ *Basic, rounded *c
 			unreachable()
 		}
 
-	
 	case isString(typ):
 		return x.Kind() == constant.String
 
@@ -455,7 +454,7 @@ func (check *Checker) convertUntyped(x *operand, target Type) {
 			}
 			target = Default(x.typ)
 		}
-	case *Pointer, *Signature, *Slice, *Map, *Chan:
+	case *Signature, *Slice, *Map:
 		if !x.isNil() {
 			goto Error
 		}
@@ -651,9 +650,9 @@ var binaryOpPredicates = opPredicates{
 	token.QUO: isNumeric,
 	token.REM: isInteger,
 
-	token.AND:     isInteger,
-	token.OR:      isInteger,
-	token.XOR:     isInteger,
+	token.AND: isInteger,
+	token.OR:  isInteger,
+	token.XOR: isInteger,
 
 	token.LAND: isBoolean,
 	token.LOR:  isBoolean,
@@ -948,7 +947,8 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 					// We have an "open" [...]T array type.
 					// Create a new ArrayType with unknown length (-1)
 					// and finish setting it up after analyzing the literal.
-					typ = &Array{len: -1, elem: check.typ(atyp.Elt)}
+					//typ = &Array{len: -1, elem: check.typ(atyp.Elt)}
+					typ = &Slice{elem: check.typ(atyp.Elt)}
 					base = typ
 					break
 				}
@@ -959,7 +959,7 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 		case hint != nil:
 			// no composite literal type present - use hint (element type of enclosing type)
 			typ = hint
-			base, _ = deref(typ.Underlying()) // *T implies &T{}
+			base = typ.Underlying() // *T implies &T{}
 
 		default:
 			// TODO(gri) provide better error messages depending on context
@@ -1033,36 +1033,36 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 				}
 			}
 
-		case *Array:
-			// Prevent crash if the array referred to is not yet set up.
-			// This is a stop-gap solution; a better approach would use the mechanism of
-			// Checker.ident (typexpr.go) using a path of types. But that would require
-			// passing the path everywhere (all expression-checking methods, not just
-			// type expression checking), and we're not set up for that (quite possibly
-			// an indication that cycle detection needs to be rethought). Was issue #18643.
-			if utyp.elem == nil {
-				check.error(e.Pos(), "illegal cycle in type declaration")
-				goto Error
+		/*case *Array:
+		// Prevent crash if the array referred to is not yet set up.
+		// This is a stop-gap solution; a better approach would use the mechanism of
+		// Checker.ident (typexpr.go) using a path of types. But that would require
+		// passing the path everywhere (all expression-checking methods, not just
+		// type expression checking), and we're not set up for that (quite possibly
+		// an indication that cycle detection needs to be rethought). Was issue #18643.
+		if utyp.elem == nil {
+			check.error(e.Pos(), "illegal cycle in type declaration")
+			goto Error
+		}
+		n := check.indexedElts(e.Elts, utyp.elem, utyp.len)
+		// If we have an array of unknown length (usually [...]T arrays, but also
+		// arrays [n]T where n is invalid) set the length now that we know it and
+		// record the type for the array (usually done by check.typ which is not
+		// called for [...]T). We handle [...]T arrays and arrays with invalid
+		// length the same here because it makes sense to "guess" the length for
+		// the latter if we have a composite literal; e.g. for [n]int{1, 2, 3}
+		// where n is invalid for some reason, it seems fair to assume it should
+		// be 3 (see also Checked.arrayLength and issue #27346).
+		if utyp.len < 0 {
+			utyp.len = n
+			// e.Type is missing if we have a composite literal element
+			// that is itself a composite literal with omitted type. In
+			// that case there is nothing to record (there is no type in
+			// the source at that point).
+			if e.Type != nil {
+				check.recordTypeAndValue(e.Type, typexpr, utyp, nil)
 			}
-			n := check.indexedElts(e.Elts, utyp.elem, utyp.len)
-			// If we have an array of unknown length (usually [...]T arrays, but also
-			// arrays [n]T where n is invalid) set the length now that we know it and
-			// record the type for the array (usually done by check.typ which is not
-			// called for [...]T). We handle [...]T arrays and arrays with invalid
-			// length the same here because it makes sense to "guess" the length for
-			// the latter if we have a composite literal; e.g. for [n]int{1, 2, 3}
-			// where n is invalid for some reason, it seems fair to assume it should
-			// be 3 (see also Checked.arrayLength and issue #27346).
-			if utyp.len < 0 {
-				utyp.len = n
-				// e.Type is missing if we have a composite literal element
-				// that is itself a composite literal with omitted type. In
-				// that case there is nothing to record (there is no type in
-				// the source at that point).
-				if e.Type != nil {
-					check.recordTypeAndValue(e.Type, typexpr, utyp, nil)
-				}
-			}
+		}*/
 
 		case *Slice:
 			// Prevent crash if the slice referred to is not yet set up.
@@ -1170,7 +1170,7 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 				x.typ = Typ[String] // string
 			}
 
-		case *Array:
+		/*case *Array:
 			valid = true
 			length = typ.len
 			if x.mode != variable {
@@ -1185,7 +1185,7 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 				x.mode = variable
 				x.typ = typ.elem
 			}
-
+		*/
 		case *Slice:
 			valid = true
 			x.mode = variable
@@ -1244,7 +1244,7 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 				}
 			}
 
-		case *Array:
+		/*case *Array:
 			valid = true
 			length = typ.len
 			if x.mode != variable {
@@ -1259,7 +1259,7 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 				length = typ.len
 				x.typ = &Slice{elem: typ.elem}
 			}
-
+		*/
 		case *Slice:
 			valid = true
 			// x.typ doesn't change
@@ -1353,7 +1353,7 @@ func (check *Checker) exprInternal(x *operand, e ast.Expr, hint Type) exprKind {
 		if x.mode == invalid {
 			goto Error
 		}
-		
+
 	case *ast.BinaryExpr:
 		check.binary(x, e, e.X, e.Y, e.Op)
 		if x.mode == invalid {

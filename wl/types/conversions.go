@@ -95,13 +95,13 @@ func (x *operand) convertibleTo(check *Checker, T Type) bool {
 
 	// "x's type and T are unnamed pointer types and their pointer base types
 	// have identical underlying types if tags are ignored"
-	if V, ok := V.(*Pointer); ok {
+	/*	if V, ok := V.(*Pointer); ok {
 		if T, ok := T.(*Pointer); ok {
 			if IdenticalIgnoreTags(V.base.Underlying(), T.base.Underlying()) {
 				return true
 			}
 		}
-	}
+	}*/
 
 	// "x's type and T are both integer or floating point types"
 	if (isInteger(V) || isFloat(V)) && (isInteger(T) || isFloat(T)) {
@@ -115,6 +115,7 @@ func (x *operand) convertibleTo(check *Checker, T Type) bool {
 
 	return false
 }
+
 /*
 func isUintptr(typ Type) bool {
 	t, ok := typ.Underlying().(*Basic)

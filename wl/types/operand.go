@@ -231,7 +231,7 @@ func (x *operand) assignableTo(check *Checker, T Type, reason *string) bool {
 			}
 		case *Interface:
 			return x.isNil() || t.Empty()
-		case *Pointer, *Signature, *Slice, *Map, *Chan:
+		case *Signature, *Slice, *Map:
 			return x.isNil()
 		}
 	}
@@ -258,14 +258,14 @@ func (x *operand) assignableTo(check *Checker, T Type, reason *string) bool {
 		return true
 	}
 
-	// x is a bidirectional channel value, T is a channel
-	// type, x's type V and T have identical element types,
-	// and at least one of V or T is not a named type
-	if Vc, ok := Vu.(*Chan); ok && Vc.dir == SendRecv {
-		if Tc, ok := Tu.(*Chan); ok && Identical(Vc.elem, Tc.elem) {
-			return !isNamed(V) || !isNamed(T)
-		}
-	}
+	/*	// x is a bidirectional channel value, T is a channel
+		// type, x's type V and T have identical element types,
+		// and at least one of V or T is not a named type
+		if Vc, ok := Vu.(*Chan); ok && Vc.dir == SendRecv {
+			if Tc, ok := Tu.(*Chan); ok && Identical(Vc.elem, Tc.elem) {
+				return !isNamed(V) || !isNamed(T)
+			}
+		}*/
 
 	return false
 }

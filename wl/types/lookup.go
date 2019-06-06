@@ -45,7 +45,7 @@ func LookupFieldOrMethod(T Type, addressable bool, pkg *Package, name string) (o
 	// Thus, if we have a named pointer type, proceed with the underlying
 	// pointer type but discard the result if it is a method since we would
 	// not have found it for T (see also issue 8590).
-	if t, _ := T.(*Named); t != nil {
+	/*if t, _ := T.(*Named); t != nil {
 		if p, _ := t.underlying.(*Pointer); p != nil {
 			obj, index, indirect = lookupFieldOrMethod(p, false, pkg, name)
 			if _, ok := obj.(*Func); ok {
@@ -53,7 +53,7 @@ func LookupFieldOrMethod(T Type, addressable bool, pkg *Package, name string) (o
 			}
 			return
 		}
-	}
+	}*/
 
 	return lookupFieldOrMethod(T, addressable, pkg, name)
 }
@@ -71,15 +71,10 @@ func lookupFieldOrMethod(T Type, addressable bool, pkg *Package, name string) (o
 		return // blank fields/methods are never found
 	}
 
-	typ, isPtr := deref(T)
-
-	// *typ where typ is an interface has no methods.
-	if isPtr && IsInterface(typ) {
-		return
-	}
+	typ := T
 
 	// Start with typ as single entry at shallowest depth.
-	current := []embeddedType{{typ, nil, isPtr, false}}
+	current := []embeddedType{{typ, nil, false, false}}
 
 	// Named types that we have seen already, allocated lazily.
 	// Used to avoid endless searches in case of recursive types.
@@ -155,11 +150,10 @@ func lookupFieldOrMethod(T Type, addressable bool, pkg *Package, name string) (o
 					// this depth, f.typ appears multiple times at the next
 					// depth.
 					if obj == nil && f.embedded {
-						typ, isPtr := deref(f.typ)
 						// TODO(gri) optimization: ignore types that can't
 						// have fields or methods (only Named, Struct, and
 						// Interface types need to be considered).
-						next = append(next, embeddedType{typ, concat(e.index, i), e.indirect || isPtr, e.multiples})
+						next = append(next, embeddedType{f.typ, concat(e.index, i), e.indirect, e.multiples})
 					}
 				}
 
@@ -184,9 +178,9 @@ func lookupFieldOrMethod(T Type, addressable bool, pkg *Package, name string) (o
 			//        contains m and the argument list can be assigned to the parameter
 			//        list of m. If x is addressable and &x's method set contains m, x.m()
 			//        is shorthand for (&x).m()".
-			if f, _ := obj.(*Func); f != nil && ptrRecv(f) && !indirect && !addressable {
-				return nil, nil, true // pointer/addressable receiver required
-			}
+			//if f, _ := obj.(*Func); f != nil && ptrRecv(f) && !indirect && !addressable {
+			//	return nil, nil, true // pointer/addressable receiver required
+			//}
 			return
 		}
 
@@ -322,6 +316,7 @@ func (check *Checker) assertableTo(V *Interface, T Type) (method *Func, wrongTyp
 	return check.missingMethod(T, V, false)
 }
 
+/*
 // deref dereferences typ if it is a *Pointer and returns its base and true.
 // Otherwise it returns (typ, false).
 func deref(typ Type) (Type, bool) {
@@ -341,6 +336,7 @@ func derefStructPtr(typ Type) Type {
 	}
 	return typ
 }
+*/
 
 // concat returns the result of concatenating list and i.
 // The result does not share its underlying array with list.

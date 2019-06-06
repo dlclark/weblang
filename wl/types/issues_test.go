@@ -9,12 +9,12 @@ package types_test
 import (
 	"bytes"
 	"fmt"
-	"weblang/wl/ast"
-	"weblang/wl/importer"
-	"weblang/wl/parser"
 	"sort"
 	"strings"
 	"testing"
+	"weblang/wl/ast"
+	"weblang/wl/importer"
+	"weblang/wl/parser"
 
 	. "weblang/wl/types"
 )
@@ -82,7 +82,7 @@ var (
 			t.Errorf("got %s; want %s", tv.Type, want)
 		}
 	}
-}*/
+}
 
 func TestIssue6413(t *testing.T) {
 	src := `
@@ -116,7 +116,7 @@ func f() int {
 	if n != 2 {
 		t.Errorf("got %d CallExprs; want 2", n)
 	}
-}
+}*/
 
 func TestIssue7245(t *testing.T) {
 	src := `
@@ -202,7 +202,7 @@ L7 uses var z int`
 // The actual issue is in go/internal/gcimporter which has a corresponding
 // test; we leave this test here to verify correct behavior at the go/types
 // level.
-func TestIssue13898(t *testing.T) {
+/*func TestIssue13898(t *testing.T) {
 	//testenv.MustHaveGoBuild(t)
 
 	const src0 = `
@@ -297,19 +297,17 @@ func TestIssue22525(t *testing.T) {
 		t.Errorf("got: %swant: %s", got, want)
 	}
 }
-
+*/
 func TestIssue25627(t *testing.T) {
-	const prefix = `package p; import "unsafe"; type P *struct{}; type I interface{}; type T `
+	const prefix = `package p; import "unsafe"; type P struct{}; type I interface{}; type T `
 	// The src strings (without prefix) are constructed such that the number of semicolons
 	// plus one corresponds to the number of fields expected in the respective struct.
 	for _, src := range []string{
 		`struct { x Missing }`,
 		`struct { Missing }`,
-		`struct { *Missing }`,
 		`struct { unsafe.Pointer }`,
 		`struct { P }`,
-		`struct { *I }`,
-		`struct { a int; b Missing; *Missing }`,
+		`struct { a int; b Missing; Missing }`,
 	} {
 		f := mustParse(t, prefix+src)
 

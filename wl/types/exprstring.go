@@ -8,7 +8,6 @@ package types
 
 import (
 	"bytes"
-	"fmt"
 	"weblang/wl/ast"
 )
 
@@ -227,9 +226,6 @@ func writeFieldList(buf *bytes.Buffer, fields *ast.FieldList, sep string, iface 
 				buf.WriteString(", ")
 			}
 			buf.WriteString(name.Name)
-		}
-		if iface {
-			fmt.Printf("field [%v]: %+v\n", i, f)
 		}
 
 		// types of interface methods consist of signatures only
