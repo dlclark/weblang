@@ -947,6 +947,68 @@ func TestGenericTypeDefBasic(t *testing.T) {
 	}
 }
 
+func TestGenericInterfaceDefBasic(t *testing.T) {
+	const src = `package main
+	
+	type A interface<T,V io.Reader> {
+		m() T
+		a V
+		b io.Reader
+	}`
+
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ast.Fprint(os.Stdout, fset, f, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	str := f.Decls[0].(*ast.GenDecl).Specs[0].(*ast.TypeSpec).Type.(*ast.InterfaceType)
+	if want, got := 2, len(str.TypeParams.List); want != got {
+		t.Errorf("number of fields, want %v got %v", want, got)
+	}
+	if want, got := 3, len(str.Fields.List); want != got {
+		t.Errorf("number of fields, want %v got %v", want, got)
+	}
+
+	if want, got := "T", str.TypeParams.List[0].Names[0].Name; want != got {
+		t.Errorf("name of typeparam 1, want %v got %v", want, got)
+	}
+	if want, got := ast.Expr(nil), str.TypeParams.List[0].Type; want != got {
+		t.Errorf("type of typeparam 1, want %v got %v", want, got)
+	}
+	if want, got := "V", str.TypeParams.List[1].Names[0].Name; want != got {
+		t.Errorf("name of typeparam 2, want %v got %v", want, got)
+	}
+	if want, got := "Reader", str.TypeParams.List[1].Type.(*ast.SelectorExpr).Sel.Name; want != got {
+		t.Errorf("type of typeparam 2, want %v got %v", want, got)
+	}
+
+	if want, got := "m", str.Fields.List[0].Names[0].Name; want != got {
+		t.Errorf("name of field 1, want %v got %v", want, got)
+	}
+	if want, got := "T", str.Fields.List[0].Type.(*ast.FuncType).Results.List[0].Type.(*ast.Ident).Name; want != got {
+		t.Errorf("type of field 1, want %v got %v", want, got)
+	}
+
+	if want, got := "a", str.Fields.List[1].Names[0].Name; want != got {
+		t.Errorf("name of field 2, want %v got %v", want, got)
+	}
+	if want, got := "V", str.Fields.List[1].Type.(*ast.Ident).Name; want != got {
+		t.Errorf("type of field 2, want %v got %v", want, got)
+	}
+
+	if want, got := "b", str.Fields.List[2].Names[0].Name; want != got {
+		t.Errorf("type of field 3, want %v got %v", want, got)
+	}
+	if want, got := "Reader", str.Fields.List[2].Type.(*ast.SelectorExpr).Sel.Name; want != got {
+		t.Errorf("type of field 3, want %v got %v", want, got)
+	}
+}
+
 func TestGenericTypeUseBasic(t *testing.T) {
 	const src = `package main
 	

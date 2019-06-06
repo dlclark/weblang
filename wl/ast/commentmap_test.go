@@ -22,8 +22,8 @@ package p /* the name is p */
 import (
 	"bytes"     // bytes
 	"fmt"       // fmt
-	"go/ast"
-	"go/parser"
+	"weblang/wl/ast"
+	"weblang/wl/parser"
 )
 
 // T

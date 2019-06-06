@@ -1163,11 +1163,11 @@ func (p *parser) parseMethodSpec(scope *ast.Scope) *ast.Field {
 		defer un(trace(p, "MethodSpec"))
 	}
 
-	//TODO: parse embedded interfaces, fields, and functions
-
 	doc := p.leadComment
 	var idents []*ast.Ident
 	var typ ast.Expr
+	var declType = ast.Fun
+
 	x := p.parseTypeName()
 	if ident, isIdent := x.(*ast.Ident); isIdent && p.tok == token.LPAREN {
 		// method
@@ -1175,9 +1175,22 @@ func (p *parser) parseMethodSpec(scope *ast.Scope) *ast.Field {
 		scope := ast.NewScope(nil) // method scope
 		typeParams, params, results := p.parseSignature(scope)
 		typ = &ast.FuncType{Func: token.NoPos, TypeParams: typeParams, Params: params, Results: results}
-	} else if p.tok == token.IDENT {
-		// field
-		return p.parseFieldDecl(scope)
+	} else if isIdent && (p.tok == token.IDENT || p.tok == token.COMMA) {
+		// field (ident followed by ident or comma list)
+		// e.g.: a, b, c int; a int;
+
+		// "x" is definitely a name
+		idents = []*ast.Ident{ident}
+
+		// as long as we have a comma, build up the list of names
+		for p.tok == token.COMMA {
+			idents = append(idents, p.parseIdent())
+			p.next()
+		}
+
+		// now we have the type
+		typ = p.tryVarType(false)
+		declType = ast.Var
 	} else {
 		// embedded interface
 		typ = x
@@ -1186,7 +1199,7 @@ func (p *parser) parseMethodSpec(scope *ast.Scope) *ast.Field {
 	p.expectSemi() // call before accessing p.linecomment
 
 	spec := &ast.Field{Doc: doc, Names: idents, Type: typ, Comment: p.lineComment}
-	p.declare(spec, nil, scope, ast.Fun, idents...)
+	p.declare(spec, nil, scope, declType, idents...)
 
 	return spec
 }
