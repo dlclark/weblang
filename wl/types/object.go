@@ -251,6 +251,16 @@ func (obj *TypeName) IsAlias() bool {
 	}
 }
 
+// A TypeParam represents a generically named type parameter
+type TypeParam struct {
+	object
+	constraint Type
+}
+
+func NewTypeParam(pos token.Pos, pkg *Package, name string, constraint Type) *TypeParam {
+	return &TypeParam{object: object{nil, pos, pkg, name, Typ[Invalid], 0, black, token.NoPos}, constraint: constraint}
+}
+
 // A Variable represents a declared variable (including function parameters and results, and struct fields).
 type Var struct {
 	object
@@ -368,6 +378,10 @@ func writeObject(buf *bytes.Buffer, obj Object, qf Qualifier) {
 		tname = obj
 		buf.WriteString("type")
 
+	case *TypeParam:
+		fmt.Fprintf(buf, "<%s>", obj.Name())
+		return
+
 	case *Var:
 		if obj.isField {
 			buf.WriteString("field")
@@ -454,14 +468,15 @@ func ObjectString(obj Object, qf Qualifier) string {
 	return buf.String()
 }
 
-func (obj *PkgName) String() string  { return ObjectString(obj, nil) }
-func (obj *Const) String() string    { return ObjectString(obj, nil) }
-func (obj *TypeName) String() string { return ObjectString(obj, nil) }
-func (obj *Var) String() string      { return ObjectString(obj, nil) }
-func (obj *Func) String() string     { return ObjectString(obj, nil) }
-func (obj *Label) String() string    { return ObjectString(obj, nil) }
-func (obj *Builtin) String() string  { return ObjectString(obj, nil) }
-func (obj *Nil) String() string      { return ObjectString(obj, nil) }
+func (obj *PkgName) String() string   { return ObjectString(obj, nil) }
+func (obj *Const) String() string     { return ObjectString(obj, nil) }
+func (obj *TypeName) String() string  { return ObjectString(obj, nil) }
+func (obj *TypeParam) String() string { return ObjectString(obj, nil) }
+func (obj *Var) String() string       { return ObjectString(obj, nil) }
+func (obj *Func) String() string      { return ObjectString(obj, nil) }
+func (obj *Label) String() string     { return ObjectString(obj, nil) }
+func (obj *Builtin) String() string   { return ObjectString(obj, nil) }
+func (obj *Nil) String() string       { return ObjectString(obj, nil) }
 
 func writeFuncName(buf *bytes.Buffer, f *Func, qf Qualifier) {
 	if f.typ != nil {

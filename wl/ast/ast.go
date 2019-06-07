@@ -291,9 +291,9 @@ type (
 		Obj     *Object   // denoted object; or nil
 
 		// maybe we need a new TypeIdent struct for these things?
-		Opening    token.Pos // open of type params
-		TypeParams []Expr    // type names of associated generic type params  ident<pkg.ident,ident,pkg.ident>
-		Closing    token.Pos // close of type params
+		Opening  token.Pos // open of type params
+		TypeArgs []Expr    // type names of associated generic type params  ident<pkg.ident,ident,pkg.ident>
+		Closing  token.Pos // close of type params
 	}
 
 	// An Ellipsis node stands for the "..." type in a
@@ -337,9 +337,9 @@ type (
 		Type   Expr      // literal type; or nil
 		Lbrace token.Pos // position of "{"
 
-		TypeParamsOpening token.Pos //position of "<" or NoPos
-		TypeParams        []Expr    //type params
-		TypeParamsClosing token.Pos //position of ">" or NoPos
+		TypeArgsOpening token.Pos //position of "<" or NoPos
+		TypeArgs        []Expr    //type params
+		TypeArgsClosing token.Pos //position of ">" or NoPos
 
 		Elts       []Expr    // list of composite elements; or nil
 		Rbrace     token.Pos // position of "}"
@@ -391,14 +391,14 @@ type (
 
 	// A CallExpr node represents an expression followed by an argument list.
 	CallExpr struct {
-		Fun        Expr      // function expression
-		Lparen     token.Pos // position of "("
-		Opening    token.Pos // position of generic <
-		TypeParams []Expr    // list of types for generic function
-		Closing    token.Pos // position of generic >
-		Args       []Expr    // function arguments; or nil
-		Ellipsis   token.Pos // position of "..." (token.NoPos if there is no "...")
-		Rparen     token.Pos // position of ")"
+		Fun      Expr      // function expression
+		Lparen   token.Pos // position of "("
+		Opening  token.Pos // position of generic <
+		TypeArgs []Expr    // list of types for generic function
+		Closing  token.Pos // position of generic >
+		Args     []Expr    // function arguments; or nil
+		Ellipsis token.Pos // position of "..." (token.NoPos if there is no "...")
+		Rparen   token.Pos // position of ")"
 	}
 
 	// A StarExpr node represents an expression of the form "*" Expression.

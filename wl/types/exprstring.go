@@ -35,10 +35,10 @@ func WriteExpr(buf *bytes.Buffer, x ast.Expr) {
 
 	case *ast.Ident:
 		buf.WriteString(x.Name)
-		if len(x.TypeParams) > 0 {
+		if len(x.TypeArgs) > 0 {
 			// name<T, K, V>
 			buf.WriteByte('<')
-			for i, t := range x.TypeParams {
+			for i, t := range x.TypeArgs {
 				if i > 0 {
 					buf.WriteString(", ")
 				}
@@ -109,10 +109,10 @@ func WriteExpr(buf *bytes.Buffer, x ast.Expr) {
 	case *ast.CallExpr:
 		WriteExpr(buf, x.Fun)
 		buf.WriteByte('(')
-		if len(x.TypeParams) > 0 {
+		if len(x.TypeArgs) > 0 {
 			// name<T, K, V>
 			buf.WriteByte('<')
-			for i, t := range x.TypeParams {
+			for i, t := range x.TypeArgs {
 				if i > 0 {
 					buf.WriteString(", ")
 				}

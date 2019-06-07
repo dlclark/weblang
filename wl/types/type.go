@@ -81,8 +81,9 @@ func (s *Slice) Elem() Type { return s.elem }
 
 // A Struct represents a struct type.
 type Struct struct {
-	fields []*Var
-	tags   []string // field tags; nil if there are no tags
+	typeparams []*TypeParam
+	fields     []*Var
+	tags       []string // field tags; nil if there are no tags
 }
 
 // NewStruct returns a new struct with the given fields and corresponding field tags.
@@ -326,6 +327,7 @@ func (m *Map) Elem() Type { return m.elem }
 type Named struct {
 	obj        *TypeName // corresponding declared object
 	underlying Type      // possibly a *Named during setup; never a *Named once set up completely
+	typeArgs   []Type    // the list of types for making an open generic type a closed generic type
 	methods    []*Func   // methods declared for this type (not the method set of this type); signatures are type-checked lazily
 }
 
@@ -369,6 +371,17 @@ func (t *Named) AddMethod(m *Func) {
 		t.methods = append(t.methods, m)
 	}
 }
+
+// AddTypeArg adds a type arg to the definition of this named type object
+func (t *Named) AddTypeArg(a Type) {
+	t.typeArgs = append(t.typeArgs, a)
+}
+
+// NumTypeArgs returns the number of type args provided
+func (t *Named) NumTypeArgs() int { return len(t.typeArgs) }
+
+// TypeArg returns the i'th TypeArg of the named type t for 0 <= i < t.NumTypeArgs()
+func (t *Named) TypeArg(i int) Type { return t.typeArgs[i] }
 
 // Implementations for Type methods.
 

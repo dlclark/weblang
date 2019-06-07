@@ -785,9 +785,9 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 
 	case *ast.Ident:
 		p.print(x)
-		if len(x.TypeParams) > 0 {
+		if len(x.TypeArgs) > 0 {
 			p.print(token.LSS)
-			p.exprList(x.Opening, x.TypeParams, depth+1, 0, x.Closing, false)
+			p.exprList(x.Opening, x.TypeArgs, depth+1, 0, x.Closing, false)
 			p.print(token.GTR)
 		}
 
@@ -969,9 +969,9 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		}
 		p.level++
 		p.print(x.Lbrace, token.LBRACE)
-		if len(x.TypeParams) > 0 {
+		if len(x.TypeArgs) > 0 {
 			p.print(token.LSS)
-			p.exprList(x.TypeParamsOpening, x.TypeParams, depth+1, 0, x.TypeParamsClosing, false)
+			p.exprList(x.TypeArgsOpening, x.TypeArgs, depth+1, 0, x.TypeArgsClosing, false)
 			p.print(token.GTR)
 		}
 		p.exprList(x.Lbrace, x.Elts, 1, commaTerm, x.Rbrace, x.Incomplete)

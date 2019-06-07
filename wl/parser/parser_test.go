@@ -1042,10 +1042,10 @@ func TestGenericTypeUseBasic(t *testing.T) {
 	if want, got := "List", intype.Name; want != got {
 		t.Errorf("func param type name, want %v got %v", want, got)
 	}
-	if want, got := 1, len(intype.TypeParams); want != got {
+	if want, got := 1, len(intype.TypeArgs); want != got {
 		t.Errorf("func param type param count, want %v got %v", want, got)
 	}
-	if want, got := "T", intype.TypeParams[0].(*ast.Ident).Name; want != got {
+	if want, got := "T", intype.TypeArgs[0].(*ast.Ident).Name; want != got {
 		t.Errorf("func param type param name, want %v got %v", want, got)
 	}
 
@@ -1056,16 +1056,16 @@ func TestGenericTypeUseBasic(t *testing.T) {
 	if want, got := "Test", sel.Sel.Name; want != got {
 		t.Errorf("body type name, want %v got %v", want, got)
 	}
-	if want, got := 2, len(sel.Sel.TypeParams); want != got {
+	if want, got := 2, len(sel.Sel.TypeArgs); want != got {
 		t.Errorf("body type param count, want %v got %v", want, got)
 	}
-	if want, got := "int", sel.Sel.TypeParams[0].(*ast.Ident).Name; want != got {
+	if want, got := "int", sel.Sel.TypeArgs[0].(*ast.Ident).Name; want != got {
 		t.Errorf("body type param 1 type, want %v got %v", want, got)
 	}
-	if want, got := "Some", sel.Sel.TypeParams[1].(*ast.SelectorExpr).Sel.Name; want != got {
+	if want, got := "Some", sel.Sel.TypeArgs[1].(*ast.SelectorExpr).Sel.Name; want != got {
 		t.Errorf("body type param 2 type, want %v got %v", want, got)
 	}
-	if want, got := 1, len(sel.Sel.TypeParams[1].(*ast.SelectorExpr).Sel.TypeParams); want != got {
+	if want, got := 1, len(sel.Sel.TypeArgs[1].(*ast.SelectorExpr).Sel.TypeArgs); want != got {
 		t.Errorf("body type param 2 subtype, want %v got %v", want, got)
 	}
 }
@@ -1094,11 +1094,11 @@ func TestGenericTypeUseLiteral(t *testing.T) {
 		t.Errorf("var1 type name, want %v got %v", want, got)
 	}
 
-	if want, got := 1, len(val.Type.(*ast.Ident).TypeParams); want != got {
+	if want, got := 1, len(val.Type.(*ast.Ident).TypeArgs); want != got {
 		t.Errorf("val1 type param count, want %v got %v", want, got)
 	}
 
-	if want, got := 1, len(val.Type.(*ast.Ident).TypeParams[0].(*ast.StructType).Fields.List); want != got {
+	if want, got := 1, len(val.Type.(*ast.Ident).TypeArgs[0].(*ast.StructType).Fields.List); want != got {
 		t.Errorf("val1 type param struct field count, want %v got %v", want, got)
 	}
 }
@@ -1125,16 +1125,16 @@ func TestGenericFuncUseBasic(t *testing.T) {
 	if want, got := "f", call.Fun.(*ast.Ident).Name; want != got {
 		t.Errorf("func name, want %v got %v", want, got)
 	}
-	if want, got := 2, len(call.TypeParams); want != got {
+	if want, got := 2, len(call.TypeArgs); want != got {
 		t.Errorf("func type param count, want %v got %v", want, got)
 	}
-	if want, got := "T", call.TypeParams[0].(*ast.Ident).Name; want != got {
+	if want, got := "T", call.TypeArgs[0].(*ast.Ident).Name; want != got {
 		t.Errorf("func type param 1 name, want %v got %v", want, got)
 	}
-	if want, got := 1, len(call.TypeParams[0].(*ast.Ident).TypeParams); want != got {
+	if want, got := 1, len(call.TypeArgs[0].(*ast.Ident).TypeArgs); want != got {
 		t.Errorf("func type param 1 subtype count, want %v got %v", want, got)
 	}
-	if want, got := 1, call.TypeParams[0].(*ast.Ident).TypeParams[0].(*ast.InterfaceType).Fields.NumFields(); want != got {
+	if want, got := 1, call.TypeArgs[0].(*ast.Ident).TypeArgs[0].(*ast.InterfaceType).Fields.NumFields(); want != got {
 		t.Errorf("func type param 1, subparam 1 interface field count, want %v got %v", want, got)
 	}
 

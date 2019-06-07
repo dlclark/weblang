@@ -88,7 +88,7 @@ func Walk(v Visitor, node Node) {
 		walkExprList(v, n.Parts)
 
 	case *Ident:
-		walkExprList(v, n.TypeParams)
+		walkExprList(v, n.TypeArgs)
 
 	case *Ellipsis:
 		if n.Elt != nil {
@@ -140,7 +140,7 @@ func Walk(v Visitor, node Node) {
 
 	case *CallExpr:
 		Walk(v, n.Fun)
-		walkExprList(v, n.TypeParams)
+		walkExprList(v, n.TypeArgs)
 		walkExprList(v, n.Args)
 
 	//case *StarExpr:

@@ -655,7 +655,7 @@ func (p *parser) parseTypeName() ast.Expr {
 		// generic type list
 		ident.Opening = p.pos
 		p.next() // move past the <
-		ident.TypeParams = p.parseTypeList()
+		ident.TypeArgs = p.parseTypeList()
 		if p.tok == token.SHR {
 			// SHR happens when we see nested generics: type<a<b>>
 
@@ -1632,13 +1632,13 @@ func (p *parser) parseCallOrConversion(fun ast.Expr) *ast.CallExpr {
 	lparen := p.expect(token.LPAREN)
 
 	var open, close token.Pos
-	var typeParams []ast.Expr
+	var typeArgs []ast.Expr
 	// parse generic type list
 	if p.tok == token.LSS {
 		// generic type list
 		open = p.pos
 		p.next() // move past the <
-		typeParams = p.parseTypeList()
+		typeArgs = p.parseTypeList()
 		// if we have a GTR we're good
 		close = p.expect(token.GTR)
 
@@ -1667,7 +1667,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr) *ast.CallExpr {
 
 	return &ast.CallExpr{
 		Fun: fun, Lparen: lparen,
-		Opening: open, TypeParams: typeParams, Closing: close,
+		Opening: open, TypeArgs: typeArgs, Closing: close,
 		Args: list, Ellipsis: ellipsis, Rparen: rparen}
 }
 
@@ -1752,14 +1752,14 @@ func (p *parser) parseLiteralValue(typ ast.Expr) ast.Expr {
 	lbrace := p.expect(token.LBRACE)
 
 	var tlOpen, tlClose token.Pos
-	var typeParams []ast.Expr
+	var typeArgs []ast.Expr
 
 	// parse generic type list
 	if p.tok == token.LSS {
 		// generic type list
 		tlOpen = p.pos
 		p.next() // move past the <
-		typeParams = p.parseTypeList()
+		typeArgs = p.parseTypeList()
 		// if we have a GTR we're good
 		tlClose = p.expect(token.GTR)
 
@@ -1777,13 +1777,13 @@ func (p *parser) parseLiteralValue(typ ast.Expr) ast.Expr {
 	p.exprLev--
 	rbrace := p.expectClosing(token.RBRACE, "composite literal")
 	return &ast.CompositeLit{
-		Type:              typ,
-		Lbrace:            lbrace,
-		TypeParamsOpening: tlOpen,
-		TypeParams:        typeParams,
-		TypeParamsClosing: tlClose,
-		Elts:              elts,
-		Rbrace:            rbrace,
+		Type:            typ,
+		Lbrace:          lbrace,
+		TypeArgsOpening: tlOpen,
+		TypeArgs:        typeArgs,
+		TypeArgsClosing: tlClose,
+		Elts:            elts,
+		Rbrace:          rbrace,
 	}
 }
 

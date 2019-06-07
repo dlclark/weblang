@@ -7,6 +7,7 @@
 package types
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"weblang/wl/ast"
@@ -108,6 +109,10 @@ func (check *Checker) ident(x *operand, e *ast.Ident, def *Named, wantType bool)
 	case *Nil:
 		x.mode = value
 
+	case *TypeParam:
+		//TODO: this right?
+		x.mode = typexpr
+
 	default:
 		unreachable()
 	}
@@ -115,7 +120,8 @@ func (check *Checker) ident(x *operand, e *ast.Ident, def *Named, wantType bool)
 	x.typ = typ
 }
 
-// typ type-checks the type expression e and returns its type, or Typ[Invalid].
+// typ type-checks the type expression e
+// and returns its type, or Typ[Invalid].
 func (check *Checker) typ(e ast.Expr) Type {
 	return check.definedType(e, nil)
 }
@@ -126,6 +132,22 @@ func (check *Checker) typ(e ast.Expr) Type {
 // any components of e are type-checked.
 //
 func (check *Checker) definedType(e ast.Expr, def *Named) (T Type) {
+
+	switch e := e.(type) {
+	case *ast.Ident:
+		return check.definedTypeWithArgs(e, e.TypeArgs, def)
+	case *ast.SelectorExpr:
+		return check.definedTypeWithArgs(e, e.Sel.TypeArgs, def)
+	case *ast.StructType, *ast.InterfaceType, *ast.UnionType, *ast.EnumType, *ast.FuncType:
+		return check.definedTypeWithArgs(e, nil, def)
+
+	default:
+		panic(fmt.Sprintf("what else goes here? %+v", e))
+	}
+
+}
+
+func (check *Checker) definedTypeWithArgs(e ast.Expr, args []ast.Expr, def *Named) (T Type) {
 	if trace {
 		check.trace(e.Pos(), "%s", e)
 		check.indent++
@@ -135,7 +157,9 @@ func (check *Checker) definedType(e ast.Expr, def *Named) (T Type) {
 		}()
 	}
 
-	T = check.typInternal(e, def)
+	fmt.Printf("Args: %v\n", args)
+
+	T = check.typInternal(e, args, def)
 	assert(isTyped(T))
 	check.recordTypeAndValue(e, typexpr, T, nil)
 
@@ -215,13 +239,16 @@ func (check *Checker) funcType(sig *Signature, recvPar *ast.FieldList, ftyp *ast
 // typInternal drives type checking of types.
 // Must only be called by definedType.
 //
-func (check *Checker) typInternal(e ast.Expr, def *Named) Type {
+func (check *Checker) typInternal(e ast.Expr, args []ast.Expr, def *Named) Type {
 	switch e := e.(type) {
 	case *ast.BadExpr:
 		// ignore - error reported before
 
 	case *ast.Ident:
 		var x operand
+		if len(args) > 0 {
+			fmt.Printf("Args!\n")
+		}
 		check.ident(&x, e, def, true)
 
 		switch x.mode {
@@ -641,8 +668,61 @@ func (check *Checker) tag(t *ast.BasicLit) string {
 	return ""
 }
 
+func (check *Checker) typeParams(t *ast.FieldList, scope *Scope, fset *objset) []*TypeParam {
+	if t == nil {
+		return nil
+	}
+
+	var tparams []*TypeParam
+
+	for _, f := range t.List {
+		var constraint Type
+		if f.Type != nil {
+			// lookup our constraint (if we have one)
+			constraint := check.typ(f.Type)
+
+			if constraint == nil {
+				// err, constraint not found
+				check.invalidAST(f.Pos(), "constraint type %s not found", f.Type)
+			} else if !IsInterface(constraint) {
+				// err, constraint not an interface
+				check.invalidAST(f.Pos(), "constraint type %s is not an interface", f.Type)
+			}
+		}
+
+		for _, n := range f.Names {
+			name := n.Name
+			pos := n.Pos()
+			fld := NewTypeParam(pos, check.pkg, name, constraint)
+
+			if name == "_" || check.declareInSet(fset, pos, fld) {
+				tparams = append(tparams, fld)
+				check.recordDef(n, fld)
+				// declare in our scope as well
+				check.declare(scope, n, fld, scope.pos)
+			}
+		}
+	}
+
+	return tparams
+}
+
 func (check *Checker) structType(styp *Struct, e *ast.StructType) {
+	// no-op
+	if e.Fields == nil && e.TypeParams == nil {
+		return
+	}
+
+	// make a scope for our type params
+	scope := check.openExprScope(e, "struct")
+	defer check.closeScope()
+	// for double-declaration checks
+	var fset objset
+
+	// first we process type params (they add context to the fields)
+	styp.typeparams = check.typeParams(e.TypeParams, scope, &fset)
 	list := e.Fields
+
 	if list == nil {
 		return
 	}
@@ -650,9 +730,6 @@ func (check *Checker) structType(styp *Struct, e *ast.StructType) {
 	// struct fields and tags
 	var fields []*Var
 	var tags []string
-
-	// for double-declaration checks
-	var fset objset
 
 	// current field typ and tag
 	var typ Type
@@ -729,6 +806,13 @@ func (check *Checker) structType(styp *Struct, e *ast.StructType) {
 
 	styp.fields = fields
 	styp.tags = tags
+}
+
+func (check *Checker) openExprScope(e ast.Expr, comment string) *Scope {
+	scope := NewScope(check.scope, e.Pos(), e.End(), comment)
+	check.recordScope(e, scope)
+	check.scope = scope
+	return scope
 }
 
 func embeddedFieldIdent(e ast.Expr) *ast.Ident {
