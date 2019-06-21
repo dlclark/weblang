@@ -13,6 +13,8 @@ import (
 	"weblang/wl/ast"
 	"weblang/wl/constant"
 	"weblang/wl/token"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // ident type-checks identifier e and initializes x with the value or type of e.
@@ -46,6 +48,13 @@ func (check *Checker) ident(x *operand, e *ast.Ident, def *Named, wantType bool)
 	// informative "not a type/value" error that this function's caller
 	// will issue (see issue #25790).
 	typ := obj.Type()
+
+	if len(e.TypeArgs) > 0 {
+
+		spew.Printf("name %#v\nobj %#v\ntyp %#v\n", obj.Name(), obj, typ)
+
+	}
+
 	if _, gotType := obj.(*TypeName); typ == nil || gotType && wantType {
 		check.objDecl(obj, def)
 		typ = obj.Type() // type must have been assigned by Checker.objDecl
@@ -247,6 +256,7 @@ func (check *Checker) typInternal(e ast.Expr, args []ast.Expr, def *Named) Type 
 	case *ast.Ident:
 		var x operand
 		if len(args) > 0 {
+			// we have an ident that looks like: typeName<arg0,arg1>
 			fmt.Printf("Args!\n")
 		}
 		check.ident(&x, e, def, true)

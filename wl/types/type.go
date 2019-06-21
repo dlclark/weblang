@@ -6,7 +6,7 @@ package types
 
 import "sort"
 
-// A Type represents a type of Go.
+// A Type represents a type in WL.
 // All types implement the Type interface.
 type Type interface {
 	// Underlying returns the underlying type of a type.
@@ -14,6 +14,20 @@ type Type interface {
 
 	// String returns a string representation of a type.
 	String() string
+}
+
+// A CloseableType represents a type that is able to be Generic.
+type CloseableType interface {
+	Type
+
+	NumTypeParams() int
+	TypeParam(i int) *TypeParam
+
+	// IsClosed returns true if the type has type args for the generic type params
+	//IsClosed() bool
+
+	// CloseWith returns a Named Type from the current type with the given args
+	//CloseWith(args []Type) *Named
 }
 
 // BasicKind describes the kind of basic type.
@@ -108,6 +122,9 @@ func (s *Struct) NumFields() int { return len(s.fields) }
 
 // Field returns the i'th field for 0 <= i < NumFields().
 func (s *Struct) Field(i int) *Var { return s.fields[i] }
+
+func (s *Struct) NumTypeParams() int { return len(s.typeparams)}
+	func (s *Struct) TypeParam(i int) *TypeParam { return s.typeparams[i]	}
 
 // Tag returns the i'th field tag for 0 <= i < NumFields().
 func (s *Struct) Tag(i int) string {
@@ -370,6 +387,23 @@ func (t *Named) AddMethod(m *Func) {
 	if i, _ := lookupMethod(t.methods, m.pkg, m.name); i < 0 {
 		t.methods = append(t.methods, m)
 	}
+}
+
+func (t *Named) IsOpenType() bool {
+	// we have type args then we're not open
+	if len(t.typeArgs) > 0 {
+		return false
+	}
+
+	// if our type doesn't have any type params then we're not open
+	if c, ok := t.obj.typ.(CloseableType); ok {
+		if c.NumTypeParams() > 0 {
+			// we have type params, but no typeargs, so we're open
+			return true
+		}
+	}
+
+	return false
 }
 
 // AddTypeArg adds a type arg to the definition of this named type object

@@ -1,9 +1,13 @@
-package compiler
+package jsprinter
 
+/*
 import (
 	"testing"
-	"weblang/code/lexer"
-	"weblang/code/parser"
+	"weblang/wl/ast"
+	"weblang/wl/importer"
+	"weblang/wl/parser"
+	"weblang/wl/token"
+	"weblang/wl/types"
 )
 
 func TestHelloWorldVar(t *testing.T) {
@@ -29,7 +33,7 @@ if (test === "World") {
 func TestIfVarSet(t *testing.T) {
 	output := compileProgram(t, `
 var test = "Hello"
-if test == "Hello" { 
+if test == "Hello" {
     test = "World"
  }`)
 
@@ -50,7 +54,7 @@ type test enum {
 }
 
 var v = test.Blah
-if v == test.Yu { 
+if v == test.Yu {
     return false
 }`)
 
@@ -75,7 +79,7 @@ type Test struct {
 }
 
 var v Test
-if v.val == 100 { 
+if v.val == 100 {
     return false
 }`)
 
@@ -93,15 +97,23 @@ return false;
 	}
 }
 
-func compileProgram(t *testing.T, program string) string {
-	l := lexer.New(program, "junk")
-	p := parser.New(l)
+func compileProgram(t *testing.T, src string) string {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "", src, 0)
 
-	tree := p.ParseProgram()
-	checkParserErrors(t, p)
+	if err != nil {
+		t.Fatalf("Error during parse: %v", err)
+	}
+
+	// typecheck
+	conf := types.Config{Importer: importer.Default()}
+	_, err = conf.Check(f.Name.Name, fset, []*ast.File{f}, nil)
+	if err != nil {
+		t.Fatalf("Error During Type Check: %v", err)
+	}
 
 	c := New()
-	err := c.Compile(tree)
+	err = c.Compile(f)
 
 	if err != nil {
 		t.Fatalf("compile error: %v", err)
@@ -109,16 +121,4 @@ func compileProgram(t *testing.T, program string) string {
 
 	return c.Output()
 }
-
-func checkParserErrors(t *testing.T, p *parser.Parser) {
-	errors := p.Errors()
-	if len(errors) == 0 {
-		return
-	}
-
-	t.Errorf("parser has %d errors", len(errors))
-	for _, msg := range errors {
-		t.Errorf("parser error: %q", msg)
-	}
-	t.FailNow()
-}
+*/

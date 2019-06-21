@@ -1,4 +1,4 @@
-package compiler
+package jscompiler
 
 type SymbolScope string
 
